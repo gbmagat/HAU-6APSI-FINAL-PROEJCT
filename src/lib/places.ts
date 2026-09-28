@@ -17,8 +17,21 @@ export function sharedScoreLabel(place: Pick<Place, "combinedScore" | "visitCoun
   return place.visitCount > 0 ? "Waiting" : "No reviews yet";
 }
 
+export type LatLngBounds = [[number, number], [number, number]];
+
+/** South-west and north-east corners around every place with usable coordinates; null when there are none. */
+export function placesBounds(places: Pick<Place, "latitude" | "longitude">[]): LatLngBounds | null {
+  const points = places.filter((place) =>
+    Number.isFinite(place.latitude) && Number.isFinite(place.longitude)
+    && Math.abs(place.latitude) <= 90 && Math.abs(place.longitude) <= 180);
+  if (!points.length) return null;
+  const latitudes = points.map((place) => place.latitude);
+  const longitudes = points.map((place) => place.longitude);
+  return [[Math.min(...latitudes), Math.min(...longitudes)], [Math.max(...latitudes), Math.max(...longitudes)]];
+}
+
 function fold(text: string) {
-  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 /** Accent-insensitive, so "cafe" finds "Luna Café". */

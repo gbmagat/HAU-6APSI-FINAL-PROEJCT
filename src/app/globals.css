@@ -895,69 +895,6 @@ ol {
   background: var(--color-sage);
 }
 
-.map-grid {
-  position: absolute;
-  inset: 0;
-  opacity: 0.62;
-  background-image: linear-gradient(
-      32deg,
-      transparent 46%,
-      rgba(255, 255, 255, 0.85) 47%,
-      rgba(255, 255, 255, 0.85) 52%,
-      transparent 53%
-    ),
-    linear-gradient(
-      145deg,
-      transparent 43%,
-      rgba(245, 237, 209, 0.95) 44%,
-      rgba(245, 237, 209, 0.95) 50%,
-      transparent 51%
-    );
-  background-size: 190px 150px, 260px 210px;
-}
-
-.map-label {
-  position: absolute;
-  z-index: 1;
-  color: var(--color-muted);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.map-label--one {
-  top: 12%;
-  left: 12%;
-}
-
-.map-label--two {
-  top: 48%;
-  left: 51%;
-}
-
-.map-label--three {
-  right: 12%;
-  bottom: 13%;
-}
-
-.map-marker {
-  position: absolute;
-  z-index: 3;
-  width: 48px;
-  height: 52px;
-  padding: 0;
-  color: var(--color-forest);
-  background: transparent;
-  border: 0;
-  filter: drop-shadow(0 3px 4px rgba(30, 48, 84, 0.18));
-  transform: translate(-50%, -50%);
-}
-
-.map-marker:hover,
-.map-marker.is-selected {
-  color: var(--color-navy);
-  transform: translate(-50%, -50%) scale(1.08);
-}
-
 .map-results {
   display: flex;
   min-width: 0;
@@ -1993,33 +1930,6 @@ ol {
 .map-location-message {
   color: var(--color-muted);
   font-size: 12px;
-}
-
-.map-route {
-  position: absolute;
-  top: 18%;
-  left: 17%;
-  width: 66%;
-  height: auto;
-  opacity: 0.8;
-}
-
-.map-marker > span {
-  position: absolute;
-  top: 13px;
-  left: 50%;
-  color: var(--color-surface);
-  font-size: 11px;
-  font-weight: 800;
-  transform: translateX(-50%);
-}
-
-.map-marker--planned {
-  color: #4b5268;
-}
-
-.map-marker--want-to-visit {
-  color: var(--color-rating);
 }
 
 .map-locate-control {

@@ -1,10 +1,12 @@
 "use client";
 
 import { Check, ChevronDown, ChevronUp, LocateFixed, MapPin, Rows3 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+import type { MapLocation } from "@/components/place-map";
 import { PlaceBadges } from "@/components/status-badge";
 import type { Place, VisitStatus } from "@/lib/domain";
 import { matchesPlaceQuery } from "@/lib/places";
@@ -18,15 +20,11 @@ const filterOptions: { label: string; value: FilterValue }[] = [
   { label: "Want", value: "want-to-visit" },
 ];
 
-const markerPositions = [
-  { left: "24%", top: "24%" },
-  { left: "60%", top: "30%" },
-  { left: "72%", top: "62%" },
-  { left: "39%", top: "66%" },
-  { left: "47%", top: "44%" },
-  { left: "82%", top: "42%" },
-  { left: "18%", top: "54%" },
-] as const;
+// Leaflet needs the browser, so the map loads after the page renders.
+const PlaceMap = dynamic(() => import("@/components/place-map"), {
+  ssr: false,
+  loading: () => <div className="place-map place-map--loading" role="status">Loading map…</div>,
+});
 
 export function MapExplorer({ places, locationEnabled }: { places: Place[]; locationEnabled: boolean }) {
   const [query, setQuery] = useState("");
@@ -35,7 +33,8 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
   const [listView, setListView] = useState(false);
   const [sheetCollapsed, setSheetCollapsed] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
-  const [userPin, setUserPin] = useState<{ left: string; top: string } | null>(null);
+  const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
+  const [pinMode, setPinMode] = useState(false);
 
   const filteredPlaces = places.filter((place) =>
     matchesPlaceQuery(place, query) && (filter === "all" || place.status === filter));
@@ -54,7 +53,10 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
     }
     setLocationMessage("Finding your approximate location…");
     navigator.geolocation.getCurrentPosition(
-      () => setLocationMessage("Approximate location found. Use the markers or search to choose a place."),
+      (position) => {
+        setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude, recenter: true });
+        setLocationMessage("Showing your approximate location. It is not saved or shared.");
+      },
       () => setLocationMessage("Location is off. Search and the manual list still work."),
       { enableHighAccuracy: false, timeout: 6000 },
     );
@@ -65,13 +67,12 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
     setSheetCollapsed(false);
   }
 
-  function pinLocation(event: React.MouseEvent<HTMLDivElement>) {
-    if ((event.target as HTMLElement).closest("button")) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const left = `${Math.round(((event.clientX - bounds.left) / bounds.width) * 100)}%`;
-    const top = `${Math.round(((event.clientY - bounds.top) / bounds.height) * 100)}%`;
-    setUserPin({ left, top });
-    setLocationMessage("Location pinned on this map preview. It is not shared or saved yet.");
+  // Only a deliberate "Pin your location" turns the next map click into a pin.
+  function handleMapClick(location: { lat: number; lng: number }) {
+    if (!pinMode) return;
+    setPinMode(false);
+    setUserLocation({ ...location, recenter: false });
+    setLocationMessage("Location pinned on the map. It is not saved or shared.");
   }
 
   return (
@@ -119,34 +120,14 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
       {locationMessage && <p className="map-location-message" role="status">{locationMessage}</p>}
 
       <div className={listView ? "map-panel is-list-view" : "map-panel"}>
-        <div className="map-canvas" aria-label="Place map preview. Click an open area to pin your location." onClick={pinLocation}>
-          <div className="map-grid" aria-hidden="true" />
-          <Image className="map-route" src="/assets/map-route.svg" alt="" width={420} height={260} aria-hidden="true" />
-          <span className="map-label map-label--one">Manila</span>
-          <span className="map-label map-label--two">Makati</span>
-          <span className="map-label map-label--three">Taguig</span>
-
-          {filteredPlaces.map((place) => {
-            const originalIndex = places.findIndex((item) => item.id === place.id);
-            const position = markerPositions[originalIndex % markerPositions.length];
-            const selected = place.id === selectedPlace?.id;
-            return (
-              <button
-                key={place.id}
-                type="button"
-                className={`map-marker map-marker--${place.status}${selected ? " is-selected" : ""}`}
-                style={position}
-                aria-label={`${place.name}, ${place.status.replaceAll("-", " ")}`}
-                aria-pressed={selected}
-                onClick={() => selectPlace(place.id)}
-              >
-                <MapPin size={42} fill="currentColor" aria-hidden="true" />
-                <span>{place.initials.slice(0, 1)}</span>
-              </button>
-            );
-          })}
-
-          {userPin && <span className="map-user-pin" style={userPin} aria-label="Your pinned location">You</span>}
+        <div className={pinMode ? "map-canvas is-pinning" : "map-canvas"}>
+          <PlaceMap
+            places={filteredPlaces}
+            selectedId={selectedPlace?.id}
+            userLocation={userLocation}
+            onSelect={selectPlace}
+            onMapClick={handleMapClick}
+          />
 
           <button type="button" className="map-locate-control" onClick={locateUser} aria-label="Locate me">
             <LocateFixed size={22} aria-hidden="true" />
@@ -183,7 +164,7 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
                   Log visit
                 </Link>
               </div>
-              <button type="button" className="text-button map-pin-action" onClick={() => setLocationMessage("Click an open spot on the map to pin your location.")}>Pin your location</button>
+              <button type="button" className="text-button map-pin-action" aria-pressed={pinMode} onClick={() => { setPinMode((current) => !current); setLocationMessage(pinMode ? "" : "Click the map where you are to pin your location."); }}>{pinMode ? "Cancel pinning" : "Pin your location"}</button>
             </article>
           )}
 

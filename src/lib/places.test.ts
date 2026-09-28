@@ -5,6 +5,7 @@ import {
   archiveTimeline,
   matchesPlaceQuery,
   pickNextPlace,
+  placesBounds,
   sharedScoreLabel,
   togglePlannedStatus,
   withDerivedReviewState,
@@ -98,5 +99,20 @@ describe("archiveTimeline", () => {
 
     expect(archiveTimeline(places, posts).map((item) => item.slug)).toEqual(["recent", "middle", "old"]);
     expect(archiveTimeline(places, posts, 10).map((item) => item.slug)).toEqual(["recent", "middle", "old", "marked"]);
+  });
+});
+
+describe("placesBounds", () => {
+  it("wraps every place so the map can show them all", () => {
+    const manila = { latitude: 14.5869, longitude: 120.9816 };
+    const antipolo = { latitude: 14.5812, longitude: 121.1669 };
+    const escolta = { latitude: 14.5967, longitude: 120.9782 };
+    expect(placesBounds([manila, antipolo, escolta])).toEqual([[14.5812, 120.9782], [14.5967, 121.1669]]);
+  });
+
+  it("ignores missing or impossible coordinates and returns null when nothing is left", () => {
+    expect(placesBounds([])).toBeNull();
+    expect(placesBounds([{ latitude: Number.NaN, longitude: 121 }, { latitude: 95, longitude: 121 }])).toBeNull();
+    expect(placesBounds([{ latitude: 14.5, longitude: 121 }, { latitude: Number.NaN, longitude: 0 }])).toEqual([[14.5, 121], [14.5, 121]]);
   });
 });

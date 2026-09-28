@@ -9,7 +9,7 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 ## Features
 
 - **Two invited accounts per shared space.** There is no public sign-up; accounts are created with a provisioning script.
-- **Map and search.** Browse places, filter by status (want to visit, planned, visited), and search by name, city, or category.
+- **Map and search.** Places sit at their real coordinates on an OpenStreetMap map. Filter by status (want to visit, planned, visited), search by name, city, or category, and use Near me or pin your location.
 - **Log an experience** in four steps: place and date, story, photo (browser preview only), and a private rating with a short reflection.
 - **Blind reviews.** Your partner's review is withheld by the server query until both reviews exist, then the shared score appears.
 - **Feed** with filters for photos and pending reviews, plus reactions and private comments.
@@ -17,7 +17,7 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 
 ## Tech stack
 
-Next.js 16 (App Router), React, TypeScript · PostgreSQL through `pg` · Zod validation · custom email/password sign-in with scrypt hashes and database-backed sessions · Vitest with PGlite for tests.
+Next.js 16 (App Router), React, TypeScript · PostgreSQL through `pg` · Leaflet with OpenStreetMap tiles · Zod validation · custom email/password sign-in with scrypt hashes and database-backed sessions · Vitest with PGlite for tests.
 
 ## Getting started
 
@@ -122,6 +122,6 @@ supabase/         Earlier Supabase design, not used
 - The server code has only been tested against the in-memory database, not a running PostgreSQL server.
 - Adding new places is not built yet, so a fresh production database starts with no places.
 - Photo uploads work only in the browser preview; the server accepts text-only experiences.
-- The map is a placeholder with fixed pin positions; a real coordinate-based map and place search are still to come.
+- Map tiles come from OpenStreetMap's public tile server, which suits light personal use; heavier use would need a dedicated tile provider. Loading tiles tells that server which area you are viewing.
 - Review reminders are saved as a preference but no notifications are sent.
 - Next: test against a real database with both accounts, build place creation and private photo storage, then deploy to a VPS behind HTTPS with backups.
