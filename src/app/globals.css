@@ -2750,16 +2750,6 @@ ol {
     gap: 12px;
   }
 
-  .feed-column .visit-post:not(:first-child) .visit-post__header,
-  .feed-column .visit-post:not(:first-child) .visit-post__story > p,
-  .feed-column .visit-post:not(:first-child) .visit-post__footer {
-    display: none;
-  }
-
-  .feed-column .visit-post:not(:first-child) .visit-post__content {
-    padding: 12px 14px;
-  }
-
   .visit-post__story > a {
     font-size: 21px;
   }

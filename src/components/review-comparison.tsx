@@ -21,7 +21,7 @@ function RatingStars({ value }: { value: number }) {
 }
 
 export function ReviewComparison({ reviews }: { reviews: Review[] }) {
-  const combinedScore = combinedOverallScore(reviews);
+  const combinedScore = combinedOverallScore(reviews)?.toFixed(1);
 
   if (reviews.length < 2) {
     return (
