@@ -173,32 +173,6 @@
   border-radius: var(--radius-sm);
 }
 
-.map-canvas[role="application"] {
-  cursor: crosshair;
-  outline: none;
-}
-
-.map-canvas[role="application"]:focus-visible {
-  box-shadow: 0 0 0 3px rgba(69, 114, 87, 0.25);
-}
-
-.map-user-pin {
-  position: absolute;
-  z-index: 5;
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  color: var(--color-surface);
-  background: var(--color-navy);
-  border: 3px solid var(--color-surface);
-  border-radius: 50%;
-  box-shadow: var(--shadow-card);
-  font-size: 9px;
-  font-weight: 800;
-  transform: translate(-50%, -50%);
-}
-
 .map-pin-action {
   justify-self: start;
   padding: 0;
@@ -404,14 +378,6 @@
   background: #dfe4dc;
 }
 
-.map-marker--planned {
-  color: var(--color-forest-dark);
-}
-
-.map-marker--want-to-visit {
-  color: var(--color-rating);
-}
-
 .memory-composer,
 .visit-post,
 .place-card,
@@ -553,4 +519,200 @@
   min-height: 40px;
   font-size: 14px;
   text-align: left;
+}
+
+/* Real map: Leaflet with OpenStreetMap data (DESIGN_SYSTEM.md "Map visual treatment"). */
+
+.map-canvas {
+  isolation: isolate; /* keeps Leaflet's layer z-indexes inside the map */
+}
+
+.place-map,
+.place-map__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.place-map--loading {
+  display: grid;
+  place-items: center;
+  color: var(--color-muted);
+  background: var(--color-sage);
+  font-size: 13px;
+}
+
+.place-map__canvas.leaflet-container {
+  background: var(--color-sage);
+  font-family: var(--font-sans);
+}
+
+/* Low-saturation, slightly warm map so it sits in the cream palette and the pins stand out. */
+.place-map .leaflet-tile-pane {
+  filter: saturate(0.3) sepia(0.12) brightness(1.04) contrast(0.9);
+}
+
+.map-canvas.is-pinning .place-map__canvas.leaflet-container {
+  cursor: crosshair;
+}
+
+.place-pin-host {
+  background: none;
+  border: 0;
+}
+
+.place-pin {
+  position: relative;
+  display: block;
+  width: 36px;
+  height: 46px;
+  filter: drop-shadow(0 3px 4px rgba(30, 48, 84, 0.25));
+  transform-origin: 50% 100%;
+  transition: transform 120ms ease-out;
+}
+
+.place-pin--visited {
+  --pin-color: var(--color-forest);
+}
+
+.place-pin--planned {
+  --pin-color: #474a65;
+}
+
+.place-pin--want-to-visit {
+  --pin-color: #629007;
+}
+
+.place-pin__shape {
+  width: 36px;
+  height: 46px;
+  fill: var(--pin-color);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+.place-pin__icon {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  fill: none;
+  stroke: var(--pin-color);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  background: var(--color-surface);
+  border-radius: 50%;
+}
+
+.place-pin__favorite {
+  position: absolute;
+  top: -3px;
+  right: -5px;
+  width: 17px;
+  height: 17px;
+  fill: #bb9d7d;
+  stroke: var(--color-navy);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.place-pin-host:hover .place-pin,
+.place-pin-host:focus-visible .place-pin {
+  transform: scale(1.12);
+}
+
+.place-pin-host .place-pin.is-selected {
+  transform: scale(1.22);
+}
+
+.place-pin-host:focus-visible {
+  outline: none;
+}
+
+.place-pin.is-selected .place-pin__shape,
+.place-pin-host:focus-visible .place-pin__shape {
+  stroke: var(--color-navy);
+  stroke-width: 2.6;
+}
+
+.place-map .leaflet-control-zoom.leaflet-bar {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.place-map .leaflet-control-zoom.leaflet-bar a {
+  width: 42px;
+  height: 42px;
+  color: var(--color-forest);
+  background: var(--color-surface);
+  font: 600 20px/42px var(--font-sans);
+}
+
+.place-map .leaflet-control-zoom.leaflet-bar a:hover {
+  background: var(--color-sage);
+}
+
+.place-map .leaflet-control-attribution {
+  color: var(--color-muted);
+  background: rgba(252, 250, 246, 0.88);
+  font-size: 10px;
+}
+
+.place-map .leaflet-control-attribution a {
+  color: var(--color-forest-dark);
+}
+
+.place-map .place-map__you {
+  padding: 3px 8px;
+  color: var(--color-navy);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.place-map__notice {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1001;
+  max-width: calc(100% - 80px);
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--color-navy);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+/* Sits under Leaflet's zoom buttons as one control column. */
+.map-canvas .map-locate-control {
+  top: 116px;
+  right: 10px;
+  bottom: auto;
+  z-index: 1001;
+  width: 44px;
+  height: 44px;
+}
+
+/* The list is always beside the map above phone width, so the toggle only matters on phones. */
+.map-view-toggle {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .map-view-toggle {
+    display: inline-flex;
+  }
+
+  /* The results sheet overlaps the map's bottom edge; keep the attribution visible above it. */
+  .place-map .leaflet-bottom {
+    bottom: 28px;
+  }
 }
