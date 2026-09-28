@@ -1,0 +1,41 @@
+# dependencies
+/node_modules
+/.npm-cache
+/.project-tmp
+
+# Next.js
+/.next
+/out
+
+# production
+/build
+
+# local environment files
+.env
+.env.local
+.env.*.local
+
+# tests and coverage
+/coverage
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# operating system and editor files
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# local scratch and tool files
+/tmp
+/recovered-temp
+/.claude

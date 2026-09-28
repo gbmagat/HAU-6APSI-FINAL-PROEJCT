@@ -1,0 +1,25 @@
+# Our Places on a private Ubuntu VPS
+
+This application now uses its own PostgreSQL database and Next.js route handlers. Supabase is not part of the runtime. Keep the database, app process, service account, and future file storage separate from IGSTPREM, even if both apps share a VPS.
+
+## Prepare the database
+
+1. Create a new PostgreSQL database and a dedicated login role for this app. Do not reuse an existing database or IGSTPREM credentials. Keep PostgreSQL private to the VPS.
+2. On that new, empty database, apply `db/schema.sql` once with `psql -h 127.0.0.1 -U our_places_app -d our_places -v ON_ERROR_STOP=1 -f db/schema.sql` (replace the example role/database names). Verify the target first; the schema is not a migration for an existing app.
+3. Set `DATABASE_URL` in a protected server-only environment file. Never use a `NEXT_PUBLIC_` variable for it or commit the real value.
+4. In an interactive terminal, run `node scripts/provision-space.mjs --database our_places --owner-email YOU@example.com --owner-name "Your name" --partner-email PARTNER@example.com --partner-name "Partner name"`. Replace the placeholders and use the actual dedicated database name. The script checks the target, asks for confirmation, and prompts for passwords without echo.
+
+There is no public registration. The two accounts share one space. Private sessions are stored in PostgreSQL; the browser receives only a Secure, HttpOnly session cookie when running over HTTPS.
+
+## Run and isolate
+
+Run `npm ci`, `npm run check`, `npm run build`, and `npm run start` under a separate, unprivileged Ubuntu service account. Bind the app to a loopback port and place an HTTPS reverse proxy in front of it on the future Our Places subdomain. Do not alter IGSTPREM's service, database, or existing proxy entry. Back up the database regularly and test restoration before storing real memories.
+
+With no `DATABASE_URL`, development keeps the browser-only preview. Production locks private pages instead of exposing that preview. The old `supabase/` directory is historical design work only; do not apply its migration to this PostgreSQL database.
+
+## Not ready for public deployment yet
+
+- The production place catalog starts empty; adding new places and a coordinate-based map still need to be completed.
+- Photo uploads and private file delivery are not implemented. The server currently accepts text-only experiences.
+- The PostgreSQL schema has an in-memory compatibility test, but the full app has not been tested against a running PostgreSQL server or on the VPS.
+- The exact subdomain and current VPS reverse-proxy configuration still need to be chosen and checked before deployment.

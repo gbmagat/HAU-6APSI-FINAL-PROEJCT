@@ -1,0 +1,33 @@
+{
+  "name": "our-places-passport",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/run-with-project-storage.mjs next dev",
+    "build": "node scripts/run-with-project-storage.mjs next build",
+    "start": "node scripts/run-with-project-storage.mjs next start",
+    "lint": "node scripts/run-with-project-storage.mjs eslint .",
+    "typecheck": "node scripts/run-with-project-storage.mjs tsc --noEmit",
+    "test": "node scripts/run-with-project-storage.mjs vitest run",
+    "check": "npm run lint && npm run typecheck && npm run test"
+  },
+  "dependencies": {
+    "lucide-react": "latest",
+    "next": "16.3.6",
+    "pg": "^8.23.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "latest",
+    "@types/pg": "^8.23.1",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "16.3.6",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

@@ -1,0 +1,282 @@
+import type {
+  Member,
+  PassportMetric,
+  Place,
+  Review,
+  VisitPost,
+} from "@/lib/domain";
+
+export const members: Member[] = [
+  {
+    id: "member-gab",
+    displayName: "Gab",
+    initials: "G",
+    role: "owner",
+  },
+  {
+    id: "member-m",
+    displayName: "M",
+    initials: "M",
+    role: "partner",
+  },
+];
+
+export const places: Place[] = [
+  {
+    id: "place-nmfa",
+    slug: "national-museum-of-fine-arts",
+    name: "National Museum of Fine Arts",
+    category: "Museum",
+    address: "Padre Burgos Avenue, Ermita",
+    city: "Manila",
+    latitude: 14.5869,
+    longitude: 120.9816,
+    status: "visited",
+    favorite: false,
+    combinedScore: null,
+    reviewProgress: "partner-review-needed",
+    visitCount: 2,
+    initials: "NM",
+    shortDescription:
+      "Quiet galleries, familiar works, and an afternoon that deserved a second lap.",
+    openingNote: "Open Tuesday to Sunday",
+  },
+  {
+    id: "place-luna",
+    slug: "luna-cafe",
+    name: "Luna Café",
+    category: "Cafe",
+    address: "Legazpi Village",
+    city: "Makati",
+    latitude: 14.5538,
+    longitude: 121.0177,
+    status: "visited",
+    favorite: true,
+    combinedScore: 5,
+    reviewProgress: "ready",
+    visitCount: 3,
+    initials: "LC",
+    shortDescription:
+      "A warm corner for dessert, long conversations, and rainy-window memories.",
+    openingNote: "Open daily until 10 PM",
+  },
+  {
+    id: "place-bgc",
+    slug: "bgc-high-street",
+    name: "BGC High Street",
+    category: "District",
+    address: "Bonifacio Global City",
+    city: "Taguig",
+    latitude: 14.5507,
+    longitude: 121.0508,
+    status: "planned",
+    favorite: false,
+    combinedScore: null,
+    reviewProgress: "not-started",
+    visitCount: 0,
+    nextVisitDate: "2026-08-09",
+    initials: "BH",
+    shortDescription:
+      "An easy evening walk with bookstores, public art, and space to wander.",
+    openingNote: "Best after sunset",
+  },
+  {
+    id: "place-ayala-triangle",
+    slug: "ayala-triangle",
+    name: "Ayala Triangle",
+    category: "Park",
+    address: "Ayala Avenue",
+    city: "Makati",
+    latitude: 14.5568,
+    longitude: 121.0232,
+    status: "planned",
+    favorite: false,
+    combinedScore: null,
+    reviewProgress: "not-started",
+    visitCount: 0,
+    nextVisitDate: "2026-08-16",
+    initials: "AT",
+    shortDescription:
+      "A shaded pause in the city for a slow Sunday walk and an early dinner.",
+    openingNote: "Open daily",
+  },
+  {
+    id: "place-first-united",
+    slug: "first-united-building",
+    name: "First United Building",
+    category: "Heritage",
+    address: "Escolta Street",
+    city: "Manila",
+    latitude: 14.5967,
+    longitude: 120.9782,
+    status: "want-to-visit",
+    favorite: false,
+    combinedScore: null,
+    reviewProgress: "not-started",
+    visitCount: 0,
+    initials: "FU",
+    shortDescription:
+      "A heritage stop for old Manila details, creative shops, and a walk along Escolta.",
+  },
+  {
+    id: "place-pinto",
+    slug: "pinto-art-museum",
+    name: "Pinto Art Museum",
+    category: "Gallery",
+    address: "Sierra Madre Street",
+    city: "Antipolo",
+    latitude: 14.5812,
+    longitude: 121.1669,
+    status: "planned",
+    favorite: true,
+    combinedScore: null,
+    reviewProgress: "not-started",
+    visitCount: 0,
+    nextVisitDate: "2026-08-23",
+    initials: "PA",
+    shortDescription:
+      "Open-air galleries and garden paths saved for an unhurried day together.",
+  },
+  {
+    id: "place-binondo",
+    slug: "binondo-food-walk",
+    name: "Binondo Food Walk",
+    category: "Walk",
+    address: "Ongpin Street",
+    city: "Manila",
+    latitude: 14.6001,
+    longitude: 120.9744,
+    status: "want-to-visit",
+    favorite: false,
+    combinedScore: null,
+    reviewProgress: "not-started",
+    visitCount: 0,
+    initials: "BF",
+    shortDescription:
+      "A shared list of dumplings, bakeries, and small stops to try in one afternoon.",
+  },
+];
+
+const gabNationalReview: Review = {
+  id: "review-national-gab",
+  author: members[0],
+  ratings: {
+    collection: 4,
+    curation: 4,
+    atmosphere: 5,
+    visitorExperience: 4,
+    accessibility: 4,
+    value: 5,
+    overall: 4,
+  },
+  wouldVisitAgain: "yes",
+  body: "The quiet rooms made the last gallery feel like it belonged only to us.",
+  submittedAt: "2026-07-28T10:30:00.000Z",
+};
+
+const gabLunaReview: Review = {
+  id: "review-luna-gab",
+  author: members[0],
+  ratings: {
+    collection: 5,
+    curation: 5,
+    atmosphere: 5,
+    visitorExperience: 5,
+    accessibility: 4,
+    value: 5,
+    overall: 5,
+  },
+  wouldVisitAgain: "yes",
+  body: "Warm, quiet, and worth returning for when we need a slow evening.",
+  submittedAt: "2026-07-24T18:15:00.000Z",
+};
+
+const mLunaReview: Review = {
+  id: "review-luna-m",
+  author: members[1],
+  ratings: {
+    collection: 5,
+    curation: 5,
+    atmosphere: 5,
+    visitorExperience: 5,
+    accessibility: 5,
+    value: 5,
+    overall: 5,
+  },
+  wouldVisitAgain: "yes",
+  body: "Dessert turned into another hour of stories while the rain softened outside.",
+  submittedAt: "2026-07-24T20:10:00.000Z",
+};
+
+export const visitPosts: VisitPost[] = [
+  {
+    id: "visit-national-2026",
+    place: places[0],
+    author: members[0],
+    visitedOn: "2026-07-28",
+    exhibition: "Permanent Fine Arts Collection",
+    title: "The last gallery stayed with us",
+    story:
+      "We slowed down near the end and returned to the first rooms before leaving. The second walk through felt completely different.",
+    photoAlt: "A softly lit grid of quiet museum gallery rooms.",
+    reviews: [gabNationalReview],
+    comments: 1,
+    reactions: [
+      { type: "love", count: 2, selected: false },
+      { type: "insightful", count: 1, selected: false },
+    ],
+    createdAt: "2026-07-28T14:20:00.000Z",
+  },
+  {
+    id: "visit-luna-2026",
+    place: places[1],
+    author: members[1],
+    visitedOn: "2026-07-24",
+    exhibition: "Dinner for two",
+    title: "Rain at Luna Café",
+    story:
+      "We stayed past dessert, trading stories while the rain softened outside.",
+    reviews: [gabLunaReview, mLunaReview],
+    comments: 2,
+    reactions: [
+      { type: "love", count: 3, selected: true },
+      { type: "like", count: 1, selected: false },
+    ],
+    createdAt: "2026-07-24T20:30:00.000Z",
+  },
+];
+
+export const passportMetrics: PassportMetric[] = [
+  {
+    label: "Places visited",
+    value: "04",
+    supportingText: "Museums, cafes, and walks",
+    icon: "museum",
+  },
+  {
+    label: "Shared stories",
+    value: "11",
+    supportingText: "Notes worth keeping",
+    icon: "star",
+  },
+  {
+    label: "Planned next",
+    value: "03",
+    supportingText: "Saved dates on the map",
+    icon: "clock",
+  },
+  {
+    label: "Cities explored",
+    value: "03",
+    supportingText: "Manila, Makati, and Taguig",
+    icon: "map",
+  },
+];
+
+export function findPlaceBySlug(slug: string): Place | undefined {
+  return places.find((place) => place.slug === slug);
+}
+
+export function postsForPlace(placeId: string): VisitPost[] {
+  return visitPosts.filter((post) => post.place.id === placeId);
+}
