@@ -1,0 +1,59 @@
+import type { Place, VisitPost, VisitStatus } from "@/lib/domain";
+import { combinedOverallScore, reviewProgressFor } from "@/lib/rating";
+
+export function pickNextPlace(places: Place[]): Place | undefined {
+  return places.find((place) => place.status === "planned")
+    ?? places.find((place) => place.status === "want-to-visit");
+}
+
+/** Un-planning returns a place we have been to back to visited, never to want-to-visit. */
+export function togglePlannedStatus(place: Pick<Place, "status" | "visitCount">): VisitStatus {
+  if (place.status !== "planned") return "planned";
+  return place.visitCount > 0 ? "visited" : "want-to-visit";
+}
+
+export function sharedScoreLabel(place: Pick<Place, "combinedScore" | "visitCount">): string {
+  if (place.combinedScore != null) return place.combinedScore.toFixed(1);
+  return place.visitCount > 0 ? "Waiting" : "No reviews yet";
+}
+
+function fold(text: string) {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+/** Accent-insensitive, so "cafe" finds "Luna Café". */
+export function matchesPlaceQuery(place: Pick<Place, "name" | "city" | "category">, query: string): boolean {
+  const needle = fold(query.trim());
+  if (!needle) return true;
+  return [place.name, place.city, place.category].some((field) => fold(field).includes(needle));
+}
+
+/** The latest visit decides a place's shared score and review progress, as the server does. */
+export function withDerivedReviewState(places: Place[], posts: VisitPost[], viewerId: string): Place[] {
+  const latestByPlace = new Map<string, VisitPost>();
+  for (const post of posts) {
+    const current = latestByPlace.get(post.place.id);
+    if (!current || post.createdAt > current.createdAt) latestByPlace.set(post.place.id, post);
+  }
+  return places.map((place) => {
+    const latest = latestByPlace.get(place.id);
+    return {
+      ...place,
+      combinedScore: latest ? combinedOverallScore(latest.reviews) : null,
+      reviewProgress: reviewProgressFor(latest, viewerId),
+    };
+  });
+}
+
+/** Visited places, most recent visit first; places marked visited without a logged visit come last. */
+export function archiveTimeline(places: Place[], posts: VisitPost[], limit = 3): Place[] {
+  const lastVisit = new Map<string, string>();
+  for (const post of posts) {
+    const seen = lastVisit.get(post.place.id);
+    if (!seen || post.visitedOn > seen) lastVisit.set(post.place.id, post.visitedOn);
+  }
+  return places
+    .filter((place) => place.status === "visited")
+    .sort((a, b) => (lastVisit.get(b.id) ?? "").localeCompare(lastVisit.get(a.id) ?? ""))
+    .slice(0, limit);
+}

@@ -1,0 +1,858 @@
+{
+  "runId": "places-passport-2026-07-31",
+  "figmaFileKey": "o1BTncqxiXRfv7W1TZf2DC",
+  "figmaFileUrl": "https://www.figma.com/design/o1BTncqxiXRfv7W1TZf2DC",
+  "scope": "Only the Our Places Passport prototype file",
+  "phase": "phase13",
+  "step": "content-declutter-validation-complete",
+  "entities": {
+    "collections": {
+      "Primitives": "VariableCollectionId:2:2",
+      "Semantic Color": "VariableCollectionId:2:3",
+      "Dimensions": "VariableCollectionId:2:4"
+    },
+    "variables": {
+      "Primitives": 18,
+      "Semantic Color": 24,
+      "Dimensions": 28
+    },
+    "pages": {
+      "00 Cover": "0:1",
+      "01 Getting Started": "6:2",
+      "02 Foundations": "6:3",
+      "— COMPONENTS —": "6:4",
+      "03 Components": "6:5",
+      "03.1 App Header": "16:2",
+      "03.2 Action Button": "16:3",
+      "03.3 Status Chip": "16:4",
+      "03.4 Metric Card": "16:5",
+      "03.5 Place Card": "16:6",
+      "03.6 Rating Row": "16:7",
+      "03.7 Mobile App Bar": "98:8",
+      "— SCREENS —": "6:6",
+      "04 Product Wireframes": "6:7",
+      "05 Mobile Wireframes": "101:2"
+    },
+    "styles": {
+      "text": 13,
+      "effect": 2
+    },
+    "components": {
+      "App Header": "25:2",
+      "Action Button": "29:2",
+      "Status Chip": "32:31",
+      "Metric Card": "34:29",
+      "Place Card": "38:130",
+      "Rating Row": "44:86",
+      "Mobile App Bar": {
+        "setId": "99:2",
+        "variants": {
+          "Map": "98:16",
+          "Feed": "98:43",
+          "Add": "98:70",
+          "Passport": "98:97"
+        }
+      }
+    },
+    "screens": {
+      "Feed — Shared Experiences": "47:2",
+      "Map — Saved Places": "49:64",
+      "Place Detail — Review": "51:148",
+      "Passport — Golden Thread": "53:197",
+      "Log an Experience — Private Review": "77:260",
+      "mobile": {
+        "Discover Map — Selected Place": "101:3",
+        "Experience Feed — Review Pending": "101:38",
+        "Place Detail — Dual Review": "101:73",
+        "Log an Experience — Step 4": "101:106",
+        "Our Passport — Golden Thread": "101:139"
+      }
+    },
+    "prototype": {
+      "page": "6:7",
+      "flowStartingPoint": {
+        "name": "Our Places Passport",
+        "nodeId": "47:2"
+      },
+      "interactionCount": 33,
+      "headerHotspotCount": 12,
+      "validation": {
+        "fontFamily": "Poppins",
+        "legacyProductLabels": 0,
+        "screenCount": 5,
+        "invalidDestinations": 0,
+        "missingFonts": 0,
+        "placeholders": 0
+      },
+      "primaryJourney": [
+        "47:2",
+        "77:260",
+        "51:148",
+        "49:64",
+        "53:197"
+      ],
+      "logExperienceFlow": {
+        "screen": "77:260",
+        "entryPoints": [
+          "47:23",
+          "47:35",
+          "53:218",
+          "83:316"
+        ],
+        "saveDraft": "77:281",
+        "previous": "79:306",
+        "publish": "79:313",
+        "openMap": "81:310"
+      }
+    },
+    "mobilePrototype": {
+      "page": "101:2",
+      "recommendedStart": "101:3",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "interactionCount": 31,
+      "navigationHotspotCount": 20,
+      "navigationInstances": {
+        "Map": "101:11",
+        "Feed": "101:46",
+        "Place Detail": "101:79",
+        "Log Experience": "101:112",
+        "Passport": "101:147"
+      },
+      "supportingStates": {
+        "Private Sign-in": "111:148",
+        "Form Step 1 — Place & Date": "111:159",
+        "Form Step 2 — Story & Details": "111:173",
+        "Form Step 3 — Photos & Alt Text": "111:187",
+        "Empty Passport": "111:199"
+      },
+      "validation": {
+        "screenCount": 5,
+        "supportingStateCount": 5,
+        "fontFamily": "Poppins",
+        "textNodeCount": 196,
+        "nonPoppinsTextNodes": 0,
+        "missingFonts": 0,
+        "directOverflow": 0,
+        "smallInteractiveTargets": 0,
+        "invalidDestinations": 0,
+        "visibleHardcodedPaints": 0,
+        "nearTransparentPrototypeHotspots": 20,
+        "componentVariantCount": 4
+      }
+    },
+    "strictDesignRevision": {
+      "desktopScreensReviewed": 5,
+      "desktopPrototypeInteractions": 33,
+      "mobilePrototypeInteractions": 31,
+      "totalPrototypeInteractions": 64,
+      "desktopHeaderRepair": {
+        "componentSet": "25:2",
+        "variantWidth": 1440,
+        "headerHeight": 66,
+        "contentWidthVariable": "VariableID:4:42",
+        "contentWidth": 1058,
+        "dividerNodeIds": [
+          "120:2",
+          "120:3",
+          "120:4",
+          "120:5",
+          "120:6"
+        ],
+        "screenInstancesUpdated": 5,
+        "prototypeHotspotsRealigned": 12,
+        "validation": {
+          "screensPassed": 5,
+          "continuousDividers": 5,
+          "geometryErrors": 0,
+          "hotspotAlignmentErrors": 0,
+          "fontFamily": "Poppins",
+          "missingFonts": 0
+        }
+      },
+      "surfaceLightening": {
+        "primitiveVariable": {
+          "id": "VariableID:3:6",
+          "name": "palette/parchment",
+          "before": "#EEDDA9",
+          "after": "#F4E9B5"
+        },
+        "semanticVariable": {
+          "id": "VariableID:4:7",
+          "name": "color/panel"
+        },
+        "referenceSample": "#F4E8B2",
+        "contrastRatios": {
+          "forestText": 9.32,
+          "secondaryGreenText": 4.52,
+          "navyText": 10.69
+        },
+        "validation": {
+          "desktopBoundPanels": 30,
+          "mobileBoundPanels": 15,
+          "targetMismatches": 0,
+          "remainingOldColorFills": 0,
+          "unboundDarkFills": 0
+        },
+        "supersededBy": "surfaceHierarchy"
+      },
+      "surfaceHierarchy": {
+        "strategy": "Warm off-white is the default panel surface; the sampled light parchment is reserved for selected and featured moments.",
+        "primitiveVariable": {
+          "id": "VariableID:3:6",
+          "name": "palette/parchment",
+          "value": "#F4E8B2"
+        },
+        "semanticVariables": {
+          "defaultPanel": {
+            "id": "VariableID:4:7",
+            "name": "color/panel",
+            "aliasTarget": "VariableID:3:15",
+            "resolvedValue": "#FBF6E8"
+          },
+          "accentPanel": {
+            "id": "VariableID:125:454",
+            "name": "color/panel/accent",
+            "aliasTarget": "VariableID:3:6",
+            "resolvedValue": "#F4E8B2",
+            "scopes": [
+              "FRAME_FILL",
+              "SHAPE_FILL"
+            ],
+            "webSyntax": "var(--color-panel-accent)"
+          }
+        },
+        "accentRoles": [
+          "App Header brand seals",
+          "Place Card variants",
+          "Feed composer",
+          "Selected place heroes and mobile sheet",
+          "Golden Thread current chapter"
+        ],
+        "bindings": {
+          "componentMasters": {
+            "headerSeals": 5,
+            "placeCardVariants": 5
+          },
+          "desktop": {
+            "defaultPanels": 17,
+            "accentPanels": 13
+          },
+          "mobile": {
+            "defaultPanels": 12,
+            "accentPanels": 3
+          }
+        },
+        "contrastRatios": {
+          "defaultPanel": {
+            "forestText": 10.56,
+            "secondaryGreenText": 5.12,
+            "navyText": 12.11
+          },
+          "accentPanel": {
+            "forestText": 9.25,
+            "secondaryGreenText": 4.48,
+            "navyText": 10.61
+          }
+        },
+        "contrastSafeTextRebindings": {
+          "placeCardLabels": 10,
+          "desktopFeaturedLabels": 3,
+          "mobileFeaturedLabels": 4,
+          "feedLabels": 7,
+          "remainingMutedTextOnAccent": 0
+        },
+        "validation": {
+          "desktopScreens": 5,
+          "mobileScreens": 5,
+          "mobileSupportingStates": 5,
+          "desktopPrototypeInteractions": 33,
+          "mobilePrototypeInteractions": 31,
+          "nonPoppinsTextNodes": 0,
+          "missingFonts": 0,
+          "mobileDirectOverflow": 0,
+          "mobileSmallInteractiveTargets": 0,
+          "brokenAliases": 0
+        }
+      },
+      "feedCleanup": {
+        "strategy": "Reduce competing blocks while matching the approved reference hierarchy: warm off-white post shells, soft chrome story panels, and forest controls; parchment remains reserved for the composer and featured place.",
+        "desktop": {
+          "screen": "47:2",
+          "accentShells": [
+            "47:29"
+          ],
+          "warmPostShells": [
+            "47:42",
+            "47:54"
+          ],
+          "warmNestedSurfaces": [
+            "47:68"
+          ],
+          "chromeStorySurfaces": [
+            "92:320",
+            "92:324"
+          ],
+          "hiddenRedundancies": [
+            "47:34",
+            "47:77"
+          ],
+          "composerHeight": 136,
+          "feedPositions": {
+            "sectionLabelY": 434,
+            "firstPostY": 480,
+            "secondPostY": 722
+          },
+          "sidebarPositions": {
+            "nextTitleY": 294,
+            "placeCardY": 334
+          },
+          "preservedPrototypeNodeIds": [
+            "47:35",
+            "47:54",
+            "47:68",
+            "47:87",
+            "73:260",
+            "73:262"
+          ]
+        },
+        "mobile": {
+          "screen": "101:38",
+          "accentShells": [],
+          "warmPostShells": [
+            "103:147",
+            "103:169"
+          ],
+          "nestedChromeSurface": "103:156",
+          "firstCardHeight": 444,
+          "secondCardY": 592,
+          "cardGap": 8
+        },
+        "surfaceRoles": {
+          "canvas": "#EFEDE0",
+          "chrome": "#E5E1CF",
+          "accentPanel": "#F4E8B2",
+          "warmPanel": "#FBF6E8",
+          "surface": "#F3F5F2",
+          "primaryText": "#164135",
+          "secondaryText": "#457257"
+        },
+        "validation": {
+          "desktopScreenshotReviewed": true,
+          "mobileScreenshotReviewed": true,
+          "desktopTextNodes": 49,
+          "mobileTextNodes": 18,
+          "fontFamily": "Poppins",
+          "nonPoppinsSegments": 0,
+          "surfaceBindingErrors": 0,
+          "footerDividerNodesRemaining": 0,
+          "desktopComposerChildrenOutside": 0,
+          "mobileFooterClipping": 0,
+          "mobileSecondCardOverflow": 0,
+          "prototypeNodesRecreated": 0
+        }
+      },
+      "parchmentLightening": {
+        "sourceSample": {
+          "image": "codex-clipboard-2048f416-2d0d-481b-9ef3-4280ecd8d3fb.png",
+          "hex": "#F4E8B2"
+        },
+        "primitiveVariable": {
+          "id": "VariableID:3:6",
+          "name": "palette/parchment",
+          "modeId": "2:0",
+          "before": "#EEDDA9",
+          "after": "#F4E8B2",
+          "webSyntax": "var(--primitive-parchment)"
+        },
+        "semanticAlias": {
+          "id": "VariableID:125:454",
+          "name": "color/panel/accent",
+          "aliasTarget": "VariableID:3:6",
+          "webSyntax": "var(--color-panel-accent)"
+        },
+        "contrastRatios": {
+          "deepForest": 9.25,
+          "secondaryGreen": 4.48,
+          "navy": 10.61
+        },
+        "contrastSafeFeedText": {
+          "boundVariable": "VariableID:4:11",
+          "boundToken": "color/text/primary",
+          "nodeIds": [
+            "47:33",
+            "47:46",
+            "47:58",
+            "103:151",
+            "103:165",
+            "103:175",
+            "103:176"
+          ]
+        },
+        "validation": {
+          "desktopScreenshotReviewed": true,
+          "mobileScreenshotReviewed": true,
+          "desktopRenderedPixel": "#F4E8B2",
+          "mobileRenderedPixel": "#F4E8B2",
+          "brokenAliases": 0,
+          "contrastBindingFailures": 0,
+          "prototypeNodesModified": 0
+        }
+      },
+      "feedCardRestyling": {
+        "referenceImage": "codex-clipboard-ad146241-f3a2-4bbd-9113-047abb058b3c.png",
+        "strategy": "Use parchment as a selective accent while regular shared-experience cards use a warm off-white shell and a soft neutral story surface with no decorative footer divider.",
+        "targetSurfaces": {
+          "canvas": "#EFEDE0",
+          "postShell": {
+            "hex": "#FBF6E8",
+            "variableId": "VariableID:4:5",
+            "variableName": "color/surface/warm"
+          },
+          "storySurface": {
+            "hex": "#E5E1CF",
+            "variableId": "VariableID:4:3",
+            "variableName": "color/chrome"
+          }
+        },
+        "preservedDesktopExemplar": {
+          "postShell": "47:42",
+          "storySurface": "92:320"
+        },
+        "surfaceBindings": {
+          "desktopPostShells": [
+            "47:42",
+            "47:54"
+          ],
+          "desktopStorySurfaces": [
+            "92:320",
+            "92:324"
+          ],
+          "mobilePostShells": [
+            "103:147",
+            "103:169"
+          ],
+          "mobileStorySurfaces": [
+            "103:156"
+          ]
+        },
+        "removedFooterDividers": [
+          "92:321",
+          "92:325",
+          "103:167",
+          "103:177"
+        ],
+        "mobileHeaderRefinement": {
+          "statusInstance": "103:152",
+          "statusLabel": "I103:152;32:30",
+          "dateMetadata": "103:151",
+          "stateVariant": "Review Pending",
+          "visibleLabel": "PENDING",
+          "chipBounds": {
+            "x": 228,
+            "y": 8,
+            "width": 114,
+            "height": 36
+          },
+          "dateY": 46
+        },
+        "validation": {
+          "surfaceBindingErrors": 0,
+          "footerDividersRemaining": 0,
+          "mobileHeaderOverlapErrors": 0,
+          "desktopScreenshotReviewed": true,
+          "mobileScreenshotReviewed": true,
+          "prototypeNodesModified": 0,
+          "prototypeTargetsMissing": 0
+        }
+      },
+      "logExperienceLayoutRepair": {
+        "referenceImage": "codex-clipboard-aabce552-c437-4b50-a93c-c1f3634d628a.png",
+        "screen": "77:260",
+        "rootCause": {
+          "contentFrame": "77:288",
+          "supportingColumn": "77:305",
+          "contentWidth": 1058,
+          "incorrectGutter": 42,
+          "incorrectSupportingX": 722,
+          "supportingWidth": 354,
+          "clippedOverflow": 18
+        },
+        "columnRepair": {
+          "primaryWidth": 680,
+          "gutter": 24,
+          "supportingX": 704,
+          "supportingWidth": 354,
+          "supportingRight": 1058,
+          "remainingOverflow": 0
+        },
+        "statusHeadingRepair": {
+          "heading": "80:298",
+          "title": "80:299",
+          "statusChip": "80:300",
+          "headingHeightBefore": 32,
+          "headingHeightAfter": 36,
+          "titleYBefore": 6,
+          "titleYAfter": 8,
+          "chipYBefore": -2,
+          "chipYAfter": 0
+        },
+        "privacyTextRepair": {
+          "privacyCard": "77:307",
+          "explanation": "80:310",
+          "sharedScore": "80:311",
+          "mapCard": "77:308",
+          "explanationHeightBefore": 42,
+          "explanationHeightAfter": 63,
+          "explanationAutoResize": "HEIGHT",
+          "sharedScoreYBefore": 110,
+          "sharedScoreYAfter": 131,
+          "textGap": 12,
+          "privacyCardHeightBefore": 160,
+          "privacyCardHeightAfter": 183,
+          "mapYBefore": 440,
+          "mapYAfter": 463,
+          "contentHeightBefore": 696,
+          "contentHeightAfter": 719
+        },
+        "validation": {
+          "screenshotReviewed": true,
+          "columnOverflow": 0,
+          "statusHeadingContained": true,
+          "privacyTextContained": true,
+          "supportingBottomMargin": 16,
+          "screenBottomMargin": 17,
+          "prototypeActionsChecked": 4,
+          "prototypeActionsMissing": 0,
+          "prototypeReactionsModified": 0
+        }
+      },
+      "referenceSystemAndFunctionalCompletion": {
+        "referenceImages": [
+          "codex-clipboard-e5560b66-c8a0-4f61-bdde-60dada218d15.png",
+          "codex-clipboard-dbde48d9-91c2-4922-ad1b-85ce38dfafd0.png",
+          "codex-clipboard-ea2a3086-3dee-4b95-87d3-a070a3e4781e.png",
+          "codex-clipboard-bd4323ec-c876-459d-8f6e-3d5e487897ff.png",
+          "codex-clipboard-381b4ef1-f219-45ba-9669-9613ab1d7d70.png"
+        ],
+        "designDirection": "Use the companion JobFinder product's visual discipline without copying its brand: navy application chrome, warm-white canvases, white cards, forest actions, pale sage support panels, and parchment only for selected highlights.",
+        "palette": {
+          "navy": "#1E3054",
+          "forest": "#457257",
+          "ratingGreen": "#55722D",
+          "background": "#F8F6F0",
+          "surface": "#FFFFFF",
+          "warmSurface": "#FCFAF6",
+          "sageSupport": "#E7EFEA",
+          "parchmentHighlight": "#F5EDD1",
+          "line": "#D9DDD7",
+          "mutedText": "#67727A"
+        },
+        "geometry": {
+          "radiusSmall": 10,
+          "radiusMedium": 12,
+          "radiusPanel": 14,
+          "radiusCard": 12,
+          "strokeStrong": 1,
+          "cardShadow": "0 4 12 rgba(30, 48, 84, 0.10)",
+          "dialogShadow": "0 12 24 rgba(30, 48, 84, 0.14)"
+        },
+        "componentsRestyled": {
+          "App Header": {
+            "setId": "25:2",
+            "variantCount": 5,
+            "treatment": "Navy shell, forest active route, white wordmark and navigation, no divider"
+          },
+          "Mobile App Bar": {
+            "setId": "99:2",
+            "variantCount": 4,
+            "treatment": "White bar, parchment active tab, forest active icon, navy inactive labels"
+          },
+          "Place Card": {
+            "setId": "38:130",
+            "variantCount": 5,
+            "treatment": "White surface, neutral one-pixel border, twelve-pixel radius, subtle elevation",
+            "twoLineTitleAndLocationClipping": 0
+          }
+        },
+        "desktop": {
+          "page": "6:7",
+          "canonicalFlowStart": {
+            "name": "Desktop · Signed-in Journey",
+            "nodeId": "47:2"
+          },
+          "screenCount": 17,
+          "reactionCount": 207,
+          "reachableScreens": 17,
+          "invalidDestinations": 0,
+          "directOverflow": 0,
+          "clippedText": 0,
+          "nonPoppinsText": 0,
+          "missingFonts": 0,
+          "neutralizedPanelBorders": 60
+        },
+        "mobile": {
+          "page": "101:2",
+          "flowStarts": [
+            {
+              "name": "Mobile · Private Sign-in",
+              "nodeId": "188:1946"
+            },
+            {
+              "name": "Mobile · Signed-in Journey",
+              "nodeId": "101:3"
+            },
+            {
+              "name": "Mobile · Empty Passport",
+              "nodeId": "188:2034"
+            }
+          ],
+          "screenCount": 29,
+          "visibleTopFrameCount": 34,
+          "reactionCount": 307,
+          "reachableScreens": 29,
+          "invalidDestinations": 0,
+          "orphanVisibleStates": 0,
+          "interactiveTargetsBelow44": 0,
+          "directOverflow": 0,
+          "clippedText": 0,
+          "nonPoppinsText": 0,
+          "missingFonts": 0,
+          "navyTopBars": 29,
+          "neutralizedPanelBorders": 112,
+          "feedStatesWithFooterCollisionRepaired": 4,
+          "accessibleListFilterHotspots": [
+            "208:714",
+            "208:716",
+            "208:718",
+            "208:720"
+          ],
+          "archivedSupersededOverlayDrafts": [
+            "111:148",
+            "111:199"
+          ]
+        },
+        "contrastRatios": {
+          "navyOnBackground": 12.1,
+          "navyOnWhite": 13.08,
+          "navyOnParchment": 11.16,
+          "navyOnSage": 11.17,
+          "mutedTextOnBackground": 4.56,
+          "forestOnParchment": 4.72,
+          "whiteOnForest": 5.53,
+          "ratingGreenOnParchment": 4.68
+        },
+        "visualQAScreens": [
+          "47:2",
+          "49:64",
+          "175:298",
+          "175:385",
+          "177:1393",
+          "101:3",
+          "101:38",
+          "183:147",
+          "183:220",
+          "183:386",
+          "188:474"
+        ],
+        "scopeClarification": "This is a complete clickable Figma front-end prototype and implementation specification. Runtime data persistence, authentication, map APIs, uploads, and browser behavior remain application-code responsibilities."
+      },
+      "contentDeclutter": {
+        "strategy": "Keep one clear information layer per region: primary identity, current status, essential rating or date, and the next action. Hide repeated eyebrows, subtitles, decorative labels, duplicated metadata, and non-functional chrome, then reflow the remaining content into the freed space.",
+        "principles": [
+          "Preserve navigation, form controls, rating inputs, map controls, and every prototype destination.",
+          "Keep place names, meaningful status, ratings, dates, and primary actions visible.",
+          "Use the existing navy, forest, off-white, white, sage, and restrained parchment token system without adding colors.",
+          "Hide safe presentation nodes instead of deleting prototype structure."
+        ],
+        "desktop": {
+          "page": "6:7",
+          "affectedAreas": [
+            "Feed",
+            "Map",
+            "Luna Cafe Detail",
+            "National Museum Detail",
+            "BGC High Street Detail",
+            "Passport",
+            "Wishlist",
+            "Profile",
+            "Log Experience Steps 1-4"
+          ],
+          "nodesChanged": 101,
+          "nodesHidden": 93,
+          "nodesDeleted": 0,
+          "cardsRepositioned": 1,
+          "emptyContainersResized": 5,
+          "metadataLinesShortened": 2,
+          "feedSidebarRepair": "Removed the redundant This Month metric block and Next on Our Map heading, then moved the Ayala Triangle card into the cleared space.",
+          "detailVariantCoverage": [
+            "Luna Cafe",
+            "National Museum of Fine Arts",
+            "BGC High Street"
+          ],
+          "validation": {
+            "reachableFrames": 18,
+            "totalFrames": 18,
+            "reactionObjects": 207,
+            "effectivelyVisibleReactions": 186,
+            "uniqueDestinations": 23,
+            "invalidDestinations": 0,
+            "principalScreensAt1440x1080": 12,
+            "directOverflow": 0,
+            "clippedText": 0,
+            "poppinsTextSegments": 365,
+            "nonPoppinsTextSegments": 0,
+            "missingFonts": 0
+          }
+        },
+        "mobile": {
+          "page": "101:2",
+          "affectedAreas": [
+            "Map",
+            "Feed",
+            "Menu",
+            "Place Detail variants",
+            "Log Experience and rating states",
+            "Passport",
+            "Wishlist",
+            "Profile",
+            "Places List"
+          ],
+          "nodesChanged": 289,
+          "nodesHidden": 100,
+          "nodesDeleted": 0,
+          "longNameRepairs": [
+            "National Museum detail hero",
+            "BGC High Street detail hero",
+            "BGC planning card title"
+          ],
+          "validation": {
+            "reachableScreens": 29,
+            "totalScreens": 29,
+            "supportingStates": 5,
+            "reactionObjects": 307,
+            "invalidDestinations": 0,
+            "interactiveTargetsBelow44": 0,
+            "horizontalOverflowScreens": 0,
+            "textTruncationSuspects": 0,
+            "nonPoppinsTextNodes": 0,
+            "missingFonts": 0
+          }
+        },
+        "visualQAScreens": {
+          "desktop": [
+            "47:2",
+            "49:64",
+            "51:148",
+            "53:197",
+            "175:298",
+            "175:385",
+            "77:260"
+          ],
+          "mobile": [
+            "101:3",
+            "101:38",
+            "183:147",
+            "101:73",
+            "101:106",
+            "101:139",
+            "183:313",
+            "183:386",
+            "183:220",
+            "185:179",
+            "185:231",
+            "185:312",
+            "111:159",
+            "111:173",
+            "111:187"
+          ]
+        }
+      },
+      "notes": [
+        "Centered desktop content shells and normalized the 680 + 24 + 354 column rhythm.",
+        "Applied the forest, parchment, warm-surface, navy, and lime roles consistently.",
+        "Removed resting shadows from compact utility components and preserved only quiet card depth.",
+        "Generalized the experience model to museums, cafes, restaurants, and other shared places.",
+        "Excluded 0.1%-opacity prototype hotspots from visible-paint token validation.",
+        "Reduced yellow dominance by using warm off-white for ordinary panels and reserving parchment for featured moments.",
+        "Simplified the Feed by removing a redundant helper line and duplicate sidebar metric while preserving the original node IDs.",
+        "Regular Feed posts now use warm off-white shells with soft chrome story panels; Parchment remains on the composer and featured place card.",
+        "Lightened the shared Parchment primitive to the exact sampled target #F4E8B2 and rebound seven small Feed labels to Deep Forest for accessible contrast.",
+        "Removed all four decorative footer divider nodes from the desktop and mobile Feed cards while preserving their action labels and prototype targets.",
+        "Shortened the mobile Review Pending badge's visible label to PENDING and separated it from the date metadata while retaining the original Review Pending component variant.",
+        "Repaired the Log Experience screen's auto-layout gutter so the 680 + 24 + 354 columns fit exactly inside 1058 px, then expanded the privacy copy to prevent its third line from colliding with the shared-score state.",
+        "Adopted the companion JobFinder product's navy, forest, white-card, pale-sage, and restrained-parchment hierarchy while retaining the Our Places Passport identity.",
+        "Completed and validated every desktop and mobile prototype branch, including filters, ratings, comments, reactions, Wishlist, Profile, accessible list states, and the four-step experience flow.",
+        "Decluttered desktop and mobile by hiding redundant hierarchy, decorative chrome, and duplicate metadata while preserving all essential content, interactions, and prototype destinations."
+      ]
+    }
+  },
+  "pendingValidations": [],
+  "completedSteps": [
+    "phase0",
+    "phase1",
+    "phase2",
+    "phase3:app-header",
+    "phase3:action-button",
+    "phase3:status-chip",
+    "phase3:metric-card",
+    "phase3:museum-card",
+    "phase3:rating-row",
+    "phase4:feed",
+    "phase4:map",
+    "phase4:museum-detail",
+    "phase4:passport",
+    "phase4",
+    "phase5:brand-generalization",
+    "phase5:place-content",
+    "phase5:prototype",
+    "phase5:validation",
+    "phase5",
+    "phase6:log-experience-screen",
+    "phase6:entry-points",
+    "phase6:prototype",
+    "phase6:validation",
+    "phase6",
+    "phase7:strict-desktop-revision",
+    "phase7:desktop-header-repair",
+    "phase7:surface-lightening",
+    "phase7:surface-hierarchy",
+    "phase7:mobile-app-bar",
+    "phase7:mobile-wireframes",
+    "phase7:mobile-supporting-states",
+    "phase7:mobile-prototype",
+    "phase7:validation",
+    "phase7",
+    "phase8:feed-cleanup",
+    "phase8:validation",
+    "phase8",
+    "phase9:parchment-lightening",
+    "phase9:contrast-rebinding",
+    "phase9:validation",
+    "phase9",
+    "phase10:feed-card-restyling",
+    "phase10:divider-removal",
+    "phase10:validation",
+    "phase10",
+    "phase11:log-experience-column-repair",
+    "phase11:status-heading-containment",
+    "phase11:privacy-text-reflow",
+    "phase11:validation",
+    "phase11",
+    "phase12:reference-system-tokens",
+    "phase12:navigation-components",
+    "phase12:surface-and-card-restyle",
+    "phase12:mobile-feed-and-back-control-repair",
+    "phase12:accessible-list-filter-cycle",
+    "phase12:desktop-functional-validation",
+    "phase12:mobile-functional-validation",
+    "phase12",
+    "phase13:desktop-content-declutter",
+    "phase13:mobile-content-declutter",
+    "phase13:cross-device-prototype-validation",
+    "phase13"
+  ],
+  "lastEdited": "2026-08-01"
+}
