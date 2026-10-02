@@ -22,6 +22,7 @@ type PlaceRow = {
   category: PlaceCategory;
   address: string;
   city: string;
+  country: string;
   latitude: number;
   longitude: number;
   initials: string;
@@ -104,7 +105,7 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
 
   const [placeResult, visitResult, reviewResult, commentResult, reactionResult, photoResult, settingsResult] = await Promise.all([
     pool.query<PlaceRow>(
-      `select p.id, p.slug, p.name, p.category, p.address, p.city,
+      `select p.id, p.slug, p.name, p.category, p.address, p.city, p.country,
               p.latitude, p.longitude, p.initials, p.short_description,
               p.opening_note, p.status, to_char(p.planned_for, 'YYYY-MM-DD') as planned_for,
               exists (select 1 from member_favorites f
@@ -177,6 +178,7 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
       category: row.category,
       address: row.address,
       city: row.city,
+      country: row.country,
       latitude: row.latitude,
       longitude: row.longitude,
       initials: row.initials,
@@ -249,8 +251,8 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
       exhibition: row.exhibition,
       title: row.title,
       story: row.story,
-      // No private photo route exists yet, so never emit a URL that would 404.
       photoAlt: photo?.alt_text || undefined,
+      photoUrl: photo ? `/api/photos/${photo.id}` : undefined,
       reviews: reviewsByVisit.get(row.id) ?? [],
       comments: discussion.length,
       reactions,

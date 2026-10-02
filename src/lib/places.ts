@@ -1,6 +1,33 @@
 import type { Place, VisitPost, VisitStatus } from "@/lib/domain";
 import { combinedOverallScore, reviewProgressFor } from "@/lib/rating";
 
+export const HOME_COUNTRY = "Philippines";
+
+export type PlaceScope = "all" | "local" | "international";
+
+/** Places saved before countries existed have none; they count as local. */
+export function isLocalPlace(place: Pick<Place, "country">): boolean {
+  return (place.country?.trim() || HOME_COUNTRY).toLowerCase() === HOME_COUNTRY.toLowerCase();
+}
+
+export function filterByScope<T extends Pick<Place, "country">>(places: T[], scope: PlaceScope): T[] {
+  if (scope === "all") return places;
+  return places.filter((place) => isLocalPlace(place) === (scope === "local"));
+}
+
+/** "Makati" at home, "Tokyo, Japan" abroad, and just "Singapore" for a city-state. */
+export function placeLocation(place: Pick<Place, "city" | "country">): string {
+  if (isLocalPlace(place)) return place.city;
+  const country = place.country.trim();
+  return place.city.trim().toLowerCase() === country.toLowerCase() ? country : `${place.city}, ${country}`;
+}
+
+/** The map frames home first; a pin abroad would otherwise zoom it out to the whole region. */
+export function framingPlaces<T extends Pick<Place, "country">>(places: T[]): T[] {
+  const local = places.filter(isLocalPlace);
+  return local.length ? local : places;
+}
+
 export function pickNextPlace(places: Place[]): Place | undefined {
   return places.find((place) => place.status === "planned")
     ?? places.find((place) => place.status === "want-to-visit");

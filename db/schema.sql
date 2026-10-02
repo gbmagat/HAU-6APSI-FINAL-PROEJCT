@@ -52,6 +52,7 @@ create table places (
     ('Museum', 'Cafe', 'Restaurant', 'Park', 'Heritage', 'District', 'Gallery', 'Walk')),
   address text not null default '',
   city text not null default '',
+  country text not null default 'Philippines' check (char_length(btrim(country)) between 1 and 80),
   latitude double precision not null check (latitude between -90 and 90),
   longitude double precision not null check (longitude between -180 and 180),
   initials text not null default '',

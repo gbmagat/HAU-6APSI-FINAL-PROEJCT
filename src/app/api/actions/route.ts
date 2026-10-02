@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { getPool } from "@/lib/db";
 import { isSameOriginRequest } from "@/lib/origin";
+import { deletePhotoFiles } from "@/lib/photo-storage";
 import { getCurrentSession } from "@/lib/session";
 
 const placeId = z.string().trim().min(1).max(80);
@@ -166,19 +167,16 @@ export async function POST(request: NextRequest) {
         break;
       }
       case "deletePost": {
-        await transaction(async (client) => {
+        const photoKeys = await transaction(async (client) => {
           const visit = await client.query<{ place_id: string }>(
             `select place_id from visits where space_id = $1 and author_id = $2 and id = $3 for update`,
             [spaceId, userId, action.postId],
           );
           if (!visit.rowCount) throw new ActionError("This experience was not found or is not yours to delete.", 404);
-          const photos = await client.query(
-            `select 1 from visit_photos where space_id = $1 and visit_id = $2 limit 1`,
+          const photos = await client.query<{ storage_key: string }>(
+            `select storage_key from visit_photos where space_id = $1 and visit_id = $2`,
             [spaceId, action.postId],
           );
-          if (photos.rowCount) {
-            throw new ActionError("This experience has a photo. Photo deletion is not available yet.", 409);
-          }
           const placeId = visit.rows[0].place_id;
           // Lock the place so a concurrent new visit cannot race the final-visit check.
           await client.query(
@@ -196,7 +194,9 @@ export async function POST(request: NextRequest) {
                 and not exists (select 1 from visits v where v.space_id = $1 and v.place_id = p.id)`,
             [spaceId, userId, placeId],
           );
+          return photos.rows.map((row) => row.storage_key);
         });
+        await deletePhotoFiles(photoKeys);
         break;
       }
     }

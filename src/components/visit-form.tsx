@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 
 import { usePassport } from "@/components/passport-provider";
 import type { Place } from "@/lib/domain";
+import { placeLocation } from "@/lib/places";
 import { todayInManila, visitFormSchema, type VisitFormInput } from "@/lib/visit-form";
 
 const steps = ["Place", "Story", "Photos", "Review & publish"] as const;
@@ -60,6 +61,7 @@ export function VisitForm({
   const [title, setTitle] = useState("");
   const [exhibition, setExhibition] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [photoSize, setPhotoSize] = useState({ width: 0, height: 0 });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMessage, setStatusMessage] = useState("");
   const [publishing, setPublishing] = useState(false);
@@ -109,7 +111,7 @@ export function VisitForm({
 
   function saveDraft() {
     try {
-      window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photoUrl, step, idempotencyKey }));
+      window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photoUrl, photoWidth: photoSize.width, photoHeight: photoSize.height, step, idempotencyKey }));
       setStatusMessage("Draft saved on this device.");
     } catch {
       setStatusMessage("This browser could not save the draft. Keep this page open to preserve your text.");
@@ -128,6 +130,8 @@ export function VisitForm({
         title?: string;
         exhibition?: string;
         photoUrl?: string;
+        photoWidth?: number;
+        photoHeight?: number;
         step?: number;
         idempotencyKey?: string;
       };
@@ -137,7 +141,8 @@ export function VisitForm({
       setValues((current) => ({ ...current, ...draft.values, privateToMembers: true }));
       setTitle(typeof draft.title === "string" ? draft.title : "");
       setExhibition(typeof draft.exhibition === "string" ? draft.exhibition : "");
-      setPhotoUrl(!passport.serverMode && typeof draft.photoUrl === "string" ? draft.photoUrl : "");
+      setPhotoUrl(typeof draft.photoUrl === "string" ? draft.photoUrl : "");
+      setPhotoSize({ width: Number(draft.photoWidth) || 0, height: Number(draft.photoHeight) || 0 });
       if (draft.idempotencyKey && /^[\da-f]{8}-[\da-f-]{27}$/i.test(draft.idempotencyKey)) setIdempotencyKey(draft.idempotencyKey as `${string}-${string}-${string}-${string}-${string}`);
       setStep(Math.min(Math.max(Number.isInteger(draft.step) ? draft.step! : 0, 0), steps.length - 1));
       setStatusMessage("Draft restored.");
@@ -176,7 +181,8 @@ export function VisitForm({
       canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
       canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
       setPhotoUrl(canvas.toDataURL("image/jpeg", 0.78));
-      setStatusMessage("Photo added to this browser preview.");
+      setPhotoSize({ width: canvas.width, height: canvas.height });
+      setStatusMessage(passport.serverMode ? "Photo added. It uploads when you publish." : "Photo added to this browser preview.");
     } catch {
       setStatusMessage("That photo could not be prepared. Try another image.");
     }
@@ -198,7 +204,7 @@ export function VisitForm({
     setPublishing(true);
     setStatusMessage("");
     // Retain both text and retry key if the connection drops after the database saves.
-    try { window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photoUrl, step, idempotencyKey })); } catch {}
+    try { window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photoUrl, photoWidth: photoSize.width, photoHeight: photoSize.height, step, idempotencyKey })); } catch {}
     try {
       await passport.addVisit({
         idempotencyKey,
@@ -210,8 +216,10 @@ export function VisitForm({
         rating: result.data.rating,
         reflection: result.data.reflection,
         revisit: result.data.revisit,
-        photoAlt: passport.serverMode ? "" : result.data.photoAlt,
+        photoAlt: result.data.photoAlt,
         photoUrl: photoUrl || undefined,
+        photoWidth: photoSize.width,
+        photoHeight: photoSize.height,
       }, activeMemberId);
       try { window.localStorage.removeItem(draftKey); } catch {}
       router.push("/feed?published=1");
@@ -270,7 +278,7 @@ export function VisitForm({
               >
                 <option value="">Choose a place</option>
                 {availablePlaces.map((place) => (
-                  <option key={place.id} value={place.id}>{place.name} — {place.city}</option>
+                  <option key={place.id} value={place.id}>{place.name} — {placeLocation(place)}</option>
                 ))}
               </select>
               {errors.placeId && <small className="field-error">{errors.placeId}</small>}
@@ -320,21 +328,21 @@ export function VisitForm({
         {step === 2 && (
           <fieldset>
             <legend>Photos</legend>
-            <p className="field-hint">{passport.serverMode ? "Photo uploads are not ready yet; you can publish without one." : "Add one image to keep with this memory. It is resized and saved only in this browser preview."}</p>
-            {!passport.serverMode && <label className="photo-dropzone">
+            <p className="field-hint">{passport.serverMode ? "Add one photo to keep with this memory. Only the two of you can see it." : "Add one image to keep with this memory. It is resized and saved only in this browser preview."}</p>
+            <label className="photo-dropzone">
               <ImagePlus size={24} aria-hidden="true" />
               <span>{photoUrl ? "Replace photo" : "Choose a photo"}</span>
-              <input type="file" accept="image/*" onChange={(event) => void handlePhoto(event.target.files?.[0])} />
-            </label>}
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void handlePhoto(event.target.files?.[0])} />
+            </label>
             {photoUrl && (
               <div className="photo-preview">
                 {/* A data URL is intentionally used here: the preview has no remote image host. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photoUrl} alt={values.photoAlt || "Preview of this place memory"} />
-                <button type="button" className="icon-button" onClick={() => setPhotoUrl("")} aria-label="Remove photo"><X size={17} aria-hidden="true" /></button>
+                <button type="button" className="icon-button" onClick={() => { setPhotoUrl(""); setPhotoSize({ width: 0, height: 0 }); }} aria-label="Remove photo"><X size={17} aria-hidden="true" /></button>
               </div>
             )}
-            {!passport.serverMode && <label className="field"><span>Photo description <small>(optional)</small></span><input value={values.photoAlt} maxLength={240} placeholder="Describe what the photo shows" onChange={(event) => updateValue("photoAlt", event.target.value)} /></label>}
+            {photoUrl && <label className="field"><span>Photo description <small>(optional)</small></span><input value={values.photoAlt} maxLength={240} placeholder="Describe what the photo shows" onChange={(event) => updateValue("photoAlt", event.target.value)} /></label>}
           </fieldset>
         )}
 

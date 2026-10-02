@@ -14,6 +14,8 @@ export function getPool(): Pool {
       connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 30000,
     });
+    // An idle connection that drops is discarded by the pool; the next query opens a fresh one.
+    pool.on("error", (error) => console.error("PostgreSQL idle connection error:", error.message));
   }
   return pool;
 }

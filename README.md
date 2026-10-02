@@ -9,8 +9,9 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 ## Features
 
 - **Two invited accounts per shared space.** There is no public sign-up; accounts are created with a provisioning script.
-- **Map and search.** Places sit at their real coordinates on an OpenStreetMap map. Filter by status (want to visit, planned, visited), search by name, city, or category, and use Near me or pin your location.
-- **Log an experience** in four steps: place and date, story, photo (browser preview only), and a private rating with a short reflection.
+- **Map and search.** Places sit at their real coordinates on an OpenStreetMap map. Typing filters your saved places; pressing Enter searches OpenStreetMap for any real place, which you can save in one step. Filter by status, use Near me, or pin your location.
+- **Local or international.** The wishlist filters saved places by whether they are in the Philippines or abroad.
+- **Log an experience** in four steps: place and date, story, an optional photo, and a private rating with a short reflection. Photos are stored privately on the server and shown only to the two members.
 - **Blind reviews.** Your partner's review is withheld by the server query until both reviews exist, then the shared score appears.
 - **Feed** with filters for photos and pending reviews, plus reactions and private comments.
 - **Place pages, wishlist, archive, and profile** with display names and preferences.
@@ -45,6 +46,7 @@ Copy `.env.example` to `.env.local`.
 | `DATABASE_URL` | Server-only PostgreSQL connection string. Leave empty to use the frontend preview. Never commit a real value. |
 | `NEXT_PUBLIC_PLACE_PROVIDER` | Placeholder for the planned map provider (`openstreetmap`). Not used yet. |
 | `NEXT_PUBLIC_PLACE_API_KEY` | Placeholder for that provider. Not used yet. |
+| `PHOTO_DIR` | Server-only folder for uploaded photos, outside `public/`. Defaults to `./storage/photos`. |
 
 The app runs in one of three modes:
 
@@ -64,7 +66,7 @@ The app runs in one of three modes:
    node scripts/provision-space.mjs --database our_places --owner-email YOU@example.com --owner-name "Your name" --partner-email PARTNER@example.com --partner-name "Partner name"
    ```
 
-4. Add places. There is no "Add place" screen yet, so places are added with SQL; [db/sample-places.sql](db/sample-places.sql) loads seven sample places and doubles as a template for your own.
+4. Optionally load sample places. You can add real places from the map search; [db/sample-places.sql](db/sample-places.sql) loads nine sample places, two of them abroad.
    ```bash
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/sample-places.sql
    ```
@@ -93,6 +95,10 @@ Sign in, find a place on the map, and log an experience with your own review. Yo
 | `POST /api/visits` | Publish an experience and its first review; safe to retry with the same draft key |
 | `POST /api/visits/{id}/review` | Submit the second member's review |
 | `POST /api/actions` | Favorites, place status, comments, reactions, display name, preferences, and deleting your own post |
+| `GET /api/places/search?q=` | Search OpenStreetMap through the server (members only, one request per second, cached) |
+| `POST /api/places` | Save a place found in search; the same name within about 50 metres returns the existing place |
+| `POST /api/visits/{id}/photos` | Upload the author's photo for an experience: JPEG, PNG, or WebP up to 8 MB, checked by its bytes |
+| `GET /api/photos/{id}` | Serve a photo only to members of the space that owns it |
 
 All write routes reject requests from other origins and require a session. Personal responses are sent with `Cache-Control: private, no-store`.
 
@@ -112,7 +118,7 @@ supabase/         Earlier Supabase design, not used
 
 ## Testing
 
-`npm run check` runs 55 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking blind reviews, retry safety, cross-site and signed-out rejection, per-member favorites, post deletion, and sign-in lockout.
+`npm run check` runs 73 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload and delivery, post deletion, and sign-in lockout.
 
 ## Screenshots
 
@@ -124,9 +130,8 @@ supabase/         Earlier Supabase design, not used
 
 ## Known issues and next steps
 
-- The server code has only been tested against the in-memory database, not a running PostgreSQL server.
-- Adding new places is not built yet, so a fresh production database starts with no places.
-- Photo uploads work only in the browser preview; the server accepts text-only experiences.
-- Map tiles come from OpenStreetMap's public tile server, which suits light personal use; heavier use would need a dedicated tile provider. Loading tiles tells that server which area you are viewing.
+- End-to-end testing ran the production build against PostgreSQL 18 through PGlite's network server with both accounts; the VPS's own PostgreSQL is still to be used.
+- Map tiles and place search use OpenStreetMap's public services, which suit light personal use. Searches pass through your server, but tiles are loaded by the browser and reveal which area you are viewing.
+- Each experience keeps one photo. Photos live on disk, so back up `PHOTO_DIR` together with the database.
 - Review reminders are saved as a preference but no notifications are sent.
-- Next: test against a real database with both accounts, build place creation and private photo storage, then deploy to a VPS behind HTTPS with backups.
+- Next: deploy to the VPS behind HTTPS with backups and a tested restore.

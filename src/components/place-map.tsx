@@ -6,7 +6,7 @@ import L from "leaflet";
 import { useEffect, useRef, useState } from "react";
 
 import type { Place, VisitStatus } from "@/lib/domain";
-import { placesBounds } from "@/lib/places";
+import { framingPlaces, placesBounds } from "@/lib/places";
 
 export type MapLocation = { lat: number; lng: number; recenter: boolean };
 
@@ -35,15 +35,23 @@ function pinHtml(status: VisitStatus, favorite: boolean) {
     + "</span>";
 }
 
+// A search result that is not saved yet: slate pin with a plus.
+const draftPinHtml = '<span class="place-pin place-pin--draft">'
+  + '<svg class="place-pin__shape" viewBox="0 0 36 46" aria-hidden="true"><path d="M18 1C9.2 1 2 8 2 16.6 2 28 18 45 18 45s16-17 16-28.4C34 8 26.8 1 18 1z"/></svg>'
+  + '<svg class="place-pin__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
+  + "</span>";
+
 export default function PlaceMap({
   places,
   selectedId,
+  draft,
   userLocation,
   onSelect,
   onMapClick,
 }: {
   places: Place[];
   selectedId?: string;
+  draft?: { latitude: number; longitude: number } | null;
   userLocation: MapLocation | null;
   onSelect: (id: string) => void;
   onMapClick: (location: { lat: number; lng: number }) => void;
@@ -53,6 +61,7 @@ export default function PlaceMap({
   const markersRef = useRef<L.LayerGroup | null>(null);
   const markersByIdRef = useRef(new Map<string, L.Marker>());
   const userMarkerRef = useRef<L.CircleMarker | null>(null);
+  const draftMarkerRef = useRef<L.Marker | null>(null);
   const fitRef = useRef<() => void>(() => undefined);
   const handlersRef = useRef({ onSelect, onMapClick });
   const [tilesFailed, setTilesFailed] = useState(false);
@@ -91,6 +100,7 @@ export default function PlaceMap({
       mapRef.current = null;
       markersRef.current = null;
       userMarkerRef.current = null;
+      draftMarkerRef.current = null;
     };
   }, []);
 
@@ -141,7 +151,7 @@ export default function PlaceMap({
     const map = mapRef.current;
     if (!map) return;
     fitRef.current = () => {
-      const bounds = placesBounds(places);
+      const bounds = placesBounds(framingPlaces(places));
       if (bounds) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15, animate: false });
       else map.setView(MANILA, 11, { animate: false });
     };
@@ -158,6 +168,22 @@ export default function PlaceMap({
     if (!map.getBounds().pad(-0.1).contains(point)) map.panTo(point);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the selection, not to re-filtering
   }, [selectedId]);
+
+  // Show the search result being considered, and take the map there.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    draftMarkerRef.current?.remove();
+    draftMarkerRef.current = null;
+    if (!draft) return;
+    draftMarkerRef.current = L.marker([draft.latitude, draft.longitude], {
+      icon: L.divIcon({ className: "place-pin-host", html: draftPinHtml, iconSize: [36, 46], iconAnchor: [18, 45] }),
+      interactive: false,
+      keyboard: false,
+      zIndexOffset: 2000,
+    }).addTo(map);
+    map.setView([draft.latitude, draft.longitude], Math.max(map.getZoom(), 15), { animate: false });
+  }, [draft]);
 
   // Your location: a navy dot with a ring and a text label, never a place pin.
   useEffect(() => {

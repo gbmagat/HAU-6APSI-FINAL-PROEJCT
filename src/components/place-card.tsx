@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { VisitStatusBadge } from "@/components/status-badge";
 import type { Place } from "@/lib/domain";
+import { placeLocation } from "@/lib/places";
 
 export function PlaceCard({ place }: { place: Place }) {
   const href = `/places/${place.slug}`;
@@ -13,7 +14,7 @@ export function PlaceCard({ place }: { place: Place }) {
         <div className="place-thumbnail" aria-hidden="true">{place.initials}</div>
         <div className="place-card__identity">
           <Link href={href} className="place-card__title" aria-label={`View ${place.name}`}>{place.name}</Link>
-          <small>{place.city} · {place.category}</small>
+          <small>{placeLocation(place)} · {place.category}</small>
         </div>
       </div>
       <div className="place-card__footer">
