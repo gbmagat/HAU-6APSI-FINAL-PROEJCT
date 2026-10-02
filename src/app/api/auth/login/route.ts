@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
+import { isSameOriginRequest } from "@/lib/origin";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession } from "@/lib/session";
 
@@ -25,8 +26,7 @@ function error(message: string, status: number) {
 
 export async function POST(request: NextRequest) {
   if (!process.env.DATABASE_URL) return error("Sign-in is not set up yet.", 503);
-  const origin = request.headers.get("origin");
-  if (origin !== request.nextUrl.origin) return error("Request not allowed.", 403);
+  if (!isSameOriginRequest(request)) return error("Request not allowed.", 403);
   const parsed = credentialsSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return error("Enter a valid email and password.", 400);
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isSameOriginRequest } from "@/lib/origin";
 import { getCurrentSession, type AppSession } from "@/lib/session";
 
 export function apiError(message: string, status: number) {
@@ -9,8 +10,7 @@ export function apiError(message: string, status: number) {
 export async function apiSession(request: NextRequest): Promise<
   { session: AppSession; error?: never } | { session?: never; error: NextResponse }
 > {
-  const origin = request.headers.get("origin");
-  if (origin !== request.nextUrl.origin) {
+  if (!isSameOriginRequest(request)) {
     return { error: apiError("This request could not be verified. Reload and try again.", 403) };
   }
   const session = await getCurrentSession();

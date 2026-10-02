@@ -206,6 +206,20 @@ describe("sign-in", () => {
     expect((await attempt("correct horse battery")).status).toBe(200);
   });
 
+  it("signs in through the HTTPS proxy, where the server only knows its internal address", async () => {
+    const proxied = new NextRequest("http://localhost:3000/api/auth/login", {
+      method: "POST",
+      headers: {
+        origin: "https://places.example.com",
+        "x-forwarded-host": "places.example.com",
+        "x-forwarded-proto": "https",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ email: "owner@example.test", password: "correct horse battery" }),
+    });
+    expect((await signIn(proxied)).status).toBe(200);
+  });
+
   it("gives an unknown email the same answer as a wrong password", async () => {
     const unknown = await attempt("whatever password", "nobody@example.test");
     const wrong = await attempt("wrong password!!");

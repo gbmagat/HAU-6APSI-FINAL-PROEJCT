@@ -77,7 +77,7 @@ export function LoginForm({
       {configured && (
         <>
           <label className="field">
-            <span>Email address</span>
+            <span>Email</span>
             <input
               type="email"
               autoComplete="email"
@@ -97,7 +97,6 @@ export function LoginForm({
               value={password}
               disabled={submitting}
               required
-              placeholder="Enter your password"
               aria-describedby={error ? "sign-in-error" : undefined}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -105,13 +104,13 @@ export function LoginForm({
           {error && <p id="sign-in-error" className="field-error" role="alert">{error}</p>}
           <button type="submit" className="button button--primary button--full" disabled={submitting}>
             <KeyRound size={18} aria-hidden="true" />
-            {submitting ? "Entering…" : "Enter Our Places"}
+            {submitting ? "Signing in…" : "Sign in"}
           </button>
         </>
       )}
       <p className="privacy-note">
         <LockKeyhole size={17} aria-hidden="true" />
-        A private space, shared only with your invited partner.
+        Just for the two of you.
       </p>
     </form>
   );

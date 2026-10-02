@@ -40,9 +40,7 @@ export default async function LoginPage({
       <section className="login-card">
         <BrandMark />
         <div className="login-card__intro">
-          <p className="eyebrow">A private space for two</p>
           <h1>Welcome back</h1>
-          <p>Keep the meals, exhibits, walks, and small moments that belong to both of you.</p>
         </div>
         <LoginForm configured={configured} allowPreview={allowPreview} notice={notice} />
       </section>
