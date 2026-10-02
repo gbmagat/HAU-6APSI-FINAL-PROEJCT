@@ -1,28 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fromNominatim, type NominatimResult, type PlaceSearchResult } from "@/lib/place-search";
+import { nominatimSearch } from "@/lib/nominatim";
+import { fromNominatim, type PlaceSearchResult } from "@/lib/place-search";
 import { getCurrentSession } from "@/lib/session";
 
-// OpenStreetMap's Nominatim policy: identify the app, at most one request per second, cache results.
-// https://operations.osmfoundation.org/policies/nominatim/
-const USER_AGENT = "OurPlaces/0.1 (private two-person app; https://github.com/gbmagat/HAU-6APSI-FINAL-PROEJCT)";
-const MIN_INTERVAL_MS = 1100;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_LIMIT = 200;
 const headers = { "Cache-Control": "private, no-store" };
 
 const cache = new Map<string, { at: number; results: PlaceSearchResult[] }>();
-let nextSlot = 0;
 
 function json(body: object, status = 200) {
   return NextResponse.json(body, { status, headers });
-}
-
-async function waitForSlot() {
-  const now = Date.now();
-  const wait = Math.max(0, nextSlot - now);
-  nextSlot = Math.max(now, nextSlot) + MIN_INTERVAL_MS;
-  if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
 }
 
 export async function GET(request: NextRequest) {
@@ -49,22 +38,14 @@ export async function GET(request: NextRequest) {
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return json({ results: cached.results });
 
   try {
-    await waitForSlot();
-    const url = new URL("https://nominatim.openstreetmap.org/search");
-    const params = new URLSearchParams({ q: query, format: "jsonv2", addressdetails: "1", limit: near ? "10" : "6" });
+    const params: Record<string, string> = { q: query, limit: near ? "10" : "6" };
     if (near) {
       // About 55 km each way; only the rounded area is sent, never the exact pin.
       const [roundedLat, roundedLng] = [Number(lat.toFixed(1)), Number(lng.toFixed(1))];
-      params.set("viewbox", [roundedLng - 0.5, roundedLat + 0.5, roundedLng + 0.5, roundedLat - 0.5].join(","));
-      params.set("bounded", "0");
+      params.viewbox = [roundedLng - 0.5, roundedLat + 0.5, roundedLng + 0.5, roundedLat - 0.5].join(",");
+      params.bounded = "0";
     }
-    url.search = params.toString();
-    const response = await fetch(url, {
-      headers: { "User-Agent": USER_AGENT, "Accept-Language": "en" },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!response.ok) return json({ error: "Place search is unavailable right now. Try again in a moment." }, 502);
-    const raw = await response.json() as NominatimResult[];
+    const raw = await nominatimSearch(params);
     const results = raw.map(fromNominatim).filter((result): result is PlaceSearchResult => result !== null);
     if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value as string);
     cache.set(key, { at: Date.now(), results });

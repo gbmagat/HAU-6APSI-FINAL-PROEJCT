@@ -15,6 +15,8 @@ export type PlaceSearchResult = {
 /** The subset of a Nominatim `format=jsonv2&addressdetails=1` result this app reads. */
 export type NominatimResult = {
   place_id?: number;
+  osm_type?: string;
+  osm_id?: number;
   lat: string;
   lon: string;
   name?: string;
@@ -22,6 +24,7 @@ export type NominatimResult = {
   category?: string;
   type?: string;
   address?: Record<string, string | undefined>;
+  extratags?: Record<string, string | undefined>;
 };
 
 const categoryByType: Record<string, PlaceCategory> = {
