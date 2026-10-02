@@ -39,14 +39,26 @@ export async function GET(request: NextRequest) {
 
   const query = request.nextUrl.searchParams.get("q")?.trim().replace(/\s+/g, " ") ?? "";
   if (query.length < 2 || query.length > 200) return json({ error: "Type at least two characters." }, 400);
-  const key = query.toLowerCase();
+  const lat = Number(request.nextUrl.searchParams.get("lat"));
+  const lng = Number(request.nextUrl.searchParams.get("lng"));
+  const near = request.nextUrl.searchParams.has("lat") && Number.isFinite(lat) && Number.isFinite(lng)
+    && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
+  // Rounded to about 11 km, so nearby pins share cached results and the exact pin never reaches the cache key.
+  const key = near ? `${query.toLowerCase()}@${lat.toFixed(1)},${lng.toFixed(1)}` : query.toLowerCase();
   const cached = cache.get(key);
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return json({ results: cached.results });
 
   try {
     await waitForSlot();
     const url = new URL("https://nominatim.openstreetmap.org/search");
-    url.search = new URLSearchParams({ q: query, format: "jsonv2", addressdetails: "1", limit: "6" }).toString();
+    const params = new URLSearchParams({ q: query, format: "jsonv2", addressdetails: "1", limit: near ? "10" : "6" });
+    if (near) {
+      // About 55 km each way; only the rounded area is sent, never the exact pin.
+      const [roundedLat, roundedLng] = [Number(lat.toFixed(1)), Number(lng.toFixed(1))];
+      params.set("viewbox", [roundedLng - 0.5, roundedLat + 0.5, roundedLng + 0.5, roundedLat - 0.5].join(","));
+      params.set("bounded", "0");
+    }
+    url.search = params.toString();
     const response = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, "Accept-Language": "en" },
       signal: AbortSignal.timeout(8000),

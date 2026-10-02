@@ -295,6 +295,18 @@ describe("searching OpenStreetMap", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("biases a search toward a pinned location without sending the exact pin", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+    as(owner);
+    const fetchMock = vi.fn(async () => new Response("[]", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await searchPlaces(new NextRequest(`${ORIGIN}/api/places/search?q=sm%20city&lat=15.0286&lng=120.6898`));
+    const url = new URL(String((fetchMock.mock.calls[0] as unknown as [URL])[0]));
+    expect(url.searchParams.get("viewbox")).toBe("120.2,15.5,121.2,14.5");
+    expect(url.searchParams.get("bounded")).toBe("0");
+    expect(url.toString()).not.toContain("15.0286");
+  });
+
   it("rejects very short searches and reports an unavailable service", async () => {
     vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
     as(owner);

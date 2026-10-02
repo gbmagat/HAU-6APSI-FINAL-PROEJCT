@@ -186,7 +186,7 @@ export function ProfileSettings() {
             <Pencil size={23} aria-hidden="true" />
             <div>
               <h2 id="profile-details-title">Profile details</h2>
-              <p>{serverMode ? "Your profile is private to this space." : "Names are saved separately for each browser preview member."}</p>
+              {!serverMode && <p>Names are saved separately for each preview member.</p>}
             </div>
           </div>
         </header>
@@ -236,8 +236,8 @@ export function ProfileSettings() {
           <div>
             <ShieldCheck size={23} aria-hidden="true" />
             <div>
-              <h2 id="preferences-title">{serverMode ? "Preferences" : "Browser preferences"}</h2>
-              <p>{serverMode ? "Your preferences for this space." : "These preferences apply to this browser preview."}</p>
+              <h2 id="preferences-title">Preferences</h2>
+              {!serverMode && <p>Saved in this browser preview.</p>}
             </div>
           </div>
         </header>
@@ -245,8 +245,8 @@ export function ProfileSettings() {
           <article>
             <MapPinOff aria-hidden="true" />
             <div>
-              <h3>Location preference</h3>
-              <p>Choose whether this device may use precise location when a map feature asks.</p>
+              <h3>Location</h3>
+              <p>Let the map use this device&apos;s location for Near me.</p>
             </div>
             <button
               type="button"
@@ -263,8 +263,8 @@ export function ProfileSettings() {
           <article>
             <Bell aria-hidden="true" />
             <div>
-              <h3>Review reminders preference</h3>
-              <p>Keep your reminder preference; notifications are not active yet.</p>
+              <h3>Review reminders</h3>
+              <p>Notifications aren&apos;t sent yet; this saves your choice.</p>
             </div>
             <button
               type="button"
