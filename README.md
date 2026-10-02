@@ -10,6 +10,8 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 
 - **Two invited accounts per shared space.** There is no public sign-up; accounts are created with a provisioning script.
 - **Map and search.** Places sit at their real coordinates on an OpenStreetMap map. Typing filters your saved places; pressing Enter searches OpenStreetMap for any real place, which you can save in one step. Filter by status, use Near me, or pin your location.
+- **Nearest first.** After you pin your location (or use Near me), search prefers nearby results, lists saved places and results with their distance, and jumps to the nearest match. Distances use the Haversine formula.
+- **Place details.** A place page adds its website, opening hours, phone, and a Wikipedia summary when OpenStreetMap has them, plus a link to its reviews on Google Maps.
 - **Local or international.** The wishlist filters saved places by whether they are in the Philippines or abroad.
 - **Log an experience** in four steps: place and date, story, an optional photo, and a private rating with a short reflection. Photos are stored privately on the server and shown only to the two members.
 - **Blind reviews.** Your partner's review is withheld by the server query until both reviews exist, then the shared score appears.
@@ -95,7 +97,8 @@ Sign in, find a place on the map, and log an experience with your own review. Yo
 | `POST /api/visits` | Publish an experience and its first review; safe to retry with the same draft key |
 | `POST /api/visits/{id}/review` | Submit the second member's review |
 | `POST /api/actions` | Favorites, place status, comments, reactions, display name, preferences, and deleting your own post |
-| `GET /api/places/search?q=` | Search OpenStreetMap through the server (members only, one request per second, cached) |
+| `GET /api/places/search?q=&lat=&lng=` | Search OpenStreetMap through the server (members only, one request per second, cached); a location biases results toward it, sending only a rounded area |
+| `GET /api/places/about?name=&lat=&lng=` | Public details for a place: website, hours, phone, and a Wikipedia summary |
 | `POST /api/places` | Save a place found in search; the same name within about 50 metres returns the existing place |
 | `POST /api/visits/{id}/photos` | Upload the author's photo for an experience: JPEG, PNG, or WebP up to 8 MB, checked by its bytes |
 | `GET /api/photos/{id}` | Serve a photo only to members of the space that owns it |
@@ -118,7 +121,7 @@ supabase/         Earlier Supabase design, not used
 
 ## Testing
 
-`npm run check` runs 73 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload and delivery, post deletion, and sign-in lockout.
+`npm run check` runs 89 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking distance ranking, blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload and delivery, post deletion, and sign-in lockout.
 
 ## Screenshots
 

@@ -28,6 +28,7 @@ import { POST as runAction } from "@/app/api/actions/route";
 import { GET as getPhoto } from "@/app/api/photos/[id]/route";
 import { POST as savePlace } from "@/app/api/places/route";
 import { POST as uploadPhoto } from "@/app/api/visits/[id]/photos/route";
+import { GET as aboutPlace } from "@/app/api/places/about/route";
 import { GET as searchPlaces } from "@/app/api/places/search/route";
 import { POST as signIn } from "@/app/api/auth/login/route";
 import { POST as submitReview } from "@/app/api/visits/[id]/review/route";
@@ -378,5 +379,49 @@ describe("private photos", () => {
     expect(await readdir(photoDir)).toHaveLength(1);
     expect((await runAction(request("/api/actions", { action: "deletePost", postId: id }))).status).toBe(200);
     expect(await readdir(photoDir)).toHaveLength(0);
+  });
+});
+
+describe("place details", () => {
+  const about = (query: string) => aboutPlace(new NextRequest(`${ORIGIN}/api/places/about?${query}`));
+
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+  it("gathers website, hours, and a Wikipedia summary for a saved place", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+    as(owner);
+    const fetchMock = vi.fn(async (input: URL | string) => {
+      const url = String(input);
+      if (url.includes("nominatim")) {
+        return new Response(JSON.stringify([{
+          lat: "14.5906", lon: "120.9752", display_name: "Intramuros, Manila", osm_type: "relation", osm_id: 9,
+          extratags: { website: "https://intramuros.gov.ph", opening_hours: "Mo-Su 08:00-20:00", wikipedia: "en:Intramuros" },
+        }]), { status: 200 });
+      }
+      return new Response(JSON.stringify({ title: "Intramuros", extract: "The historic walled area of Manila.", content_urls: { desktop: { page: "https://en.wikipedia.org/wiki/Intramuros" } } }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await about("name=Intramuros&lat=14.5904&lng=120.9750");
+    expect(response.status).toBe(200);
+    expect((await response.json() as { about: object }).about).toEqual({
+      website: "https://intramuros.gov.ph/",
+      openingHours: "Mo-Su 08:00-20:00",
+      osmUrl: "https://www.openstreetmap.org/relation/9",
+      wikipedia: { title: "Intramuros", extract: "The historic walled area of Manila.", url: "https://en.wikipedia.org/wiki/Intramuros" },
+    });
+    const searchUrl = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(searchUrl.searchParams.get("bounded")).toBe("1");
+    expect(String(fetchMock.mock.calls[1][0])).toBe("https://en.wikipedia.org/api/rest_v1/page/summary/Intramuros");
+  });
+
+  it("returns no details when nothing matches near the pin, and requires a session and coordinates", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify([{ lat: "15.5", lon: "121.5", display_name: "Far away" }]), { status: 200 })));
+    as(owner);
+    expect(await (await about("name=Hidden%20Garden&lat=14.6&lng=121.0")).json()).toEqual({ about: {} });
+    expect((await about("name=Hidden%20Garden")).status).toBe(400);
+    h.session = null;
+    expect((await about("name=Hidden%20Garden&lat=14.6&lng=121.0")).status).toBe(401);
   });
 });

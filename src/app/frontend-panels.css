@@ -954,3 +954,40 @@
   border-radius: 0;
   box-shadow: none;
 }
+
+/* Public place details: a short summary and outside links inside the existing hero. */
+.place-about__extract {
+  max-width: 62ch;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.place-about__extract a,
+.place-about__links a {
+  color: var(--color-forest-dark);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.place-about__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.place-about__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.place-detail-sidebar dd {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
