@@ -11,6 +11,7 @@ import type { MapLocation } from "@/components/place-map";
 import { PlaceBadges } from "@/components/status-badge";
 import { placeCategories, type Place, type PlaceCategory, type VisitStatus } from "@/lib/domain";
 import { placeInitials } from "@/lib/place-input";
+import { formatDistance, sortByDistance } from "@/lib/geo";
 import type { PlaceSearchResult } from "@/lib/place-search";
 import { matchesPlaceQuery, placeLocation } from "@/lib/places";
 
@@ -51,8 +52,11 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const filteredPlaces = places.filter((place) =>
-    matchesPlaceQuery(place, query) && (filter === "all" || place.status === filter));
+  const origin = userLocation ? { latitude: userLocation.lat, longitude: userLocation.lng } : null;
+  const filteredPlaces = sortByDistance(places.filter((place) =>
+    matchesPlaceQuery(place, query) && (filter === "all" || place.status === filter)), origin);
+  const searchResults = search.status === "done" ? sortByDistance(search.results, origin) : [];
+  const draftDistance = draft && origin ? sortByDistance([draft], origin)[0].distanceKm : undefined;
   const selectedPlace = draft ? undefined : filteredPlaces.find((place) => place.id === selectedId) ?? filteredPlaces[0];
   const trimmedQuery = query.trim();
 
@@ -104,10 +108,15 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
     setDraft(null);
     setSheetCollapsed(false);
     try {
-      const response = await fetch(`/api/places/search?q=${encodeURIComponent(trimmedQuery)}`, { credentials: "same-origin" });
+      const near = origin ? `&lat=${origin.latitude.toFixed(4)}&lng=${origin.longitude.toFixed(4)}` : "";
+      const response = await fetch(`/api/places/search?q=${encodeURIComponent(trimmedQuery)}${near}`, { credentials: "same-origin" });
       const data = await response.json().catch(() => null) as { results?: PlaceSearchResult[]; error?: string } | null;
       if (!response.ok) throw new Error(data?.error || "Place search is unavailable right now.");
-      setSearch({ status: "done", query: trimmedQuery, results: data?.results ?? [] });
+      const results = data?.results ?? [];
+      setSearch({ status: "done", query: trimmedQuery, results });
+      // With a pinned location, go straight to the nearest match.
+      const nearest = origin ? sortByDistance(results, origin)[0] : undefined;
+      if (nearest) pickResult(nearest);
     } catch (error) {
       setSearch({ status: "error", query: trimmedQuery, message: error instanceof Error ? error.message : "Place search is unavailable right now." });
     }
@@ -165,13 +174,7 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
             {search.status === "loading" ? "Searching…" : "Search"}
           </button>
         </form>
-        <button type="button" className="button button--secondary map-near-me" onClick={locateUser}>
-          <LocateFixed size={18} aria-hidden="true" />
-          Near me
-        </button>
-      </div>
-
-      <div className="filter-row" role="group" aria-label="Place filters">
+        <div className="filter-row" role="group" aria-label="Place filters">
         {filterOptions.map((option) => (
           <button
             key={option.value}
@@ -192,6 +195,11 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
           <Rows3 size={17} aria-hidden="true" />
           {listView ? "Map view" : "List view"}
         </button>
+        </div>
+        <button type="button" className="button button--secondary map-near-me" onClick={locateUser}>
+          <LocateFixed size={18} aria-hidden="true" />
+          Near me
+        </button>
       </div>
 
       {locationMessage && <p className="map-location-message" role="status">{locationMessage}</p>}
@@ -202,6 +210,7 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
             places={filteredPlaces}
             selectedId={selectedPlace?.id}
             draft={draft}
+            target={draft ?? selectedPlace ?? null}
             userLocation={userLocation}
             onSelect={selectPlace}
             onMapClick={handleMapClick}
@@ -229,7 +238,7 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
                 <span className="place-thumbnail" aria-hidden="true">{placeInitials(draft.name)}</span>
                 <div>
                   <h2 id="draft-place-title">{draft.name}</h2>
-                  <p>{placeLocation(draft)}</p>
+                  <p>{placeLocation(draft)}{draftDistance !== undefined && ` · ${formatDistance(draftDistance)} from you`}</p>
                 </div>
               </div>
               <span className="status-badge status-badge--draft"><MapPin size={14} aria-hidden="true" />Not saved</span>
@@ -283,17 +292,17 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
               )}
               {search.status === "done" && search.results.length > 0 && (
                 <ul className="map-search-results__list">
-                  {search.results.map((result) => (
+                  {searchResults.map((result, index) => (
                     <li key={result.id}>
                       <button type="button" className={draft?.id === result.id ? "is-selected" : ""} aria-pressed={draft?.id === result.id} onClick={() => pickResult(result)}>
-                        <span>{result.name}</span>
-                        <small>{placeLocation(result)} · {result.category}</small>
+                        <span>{result.name}{origin && index === 0 && <em className="nearest-tag">Nearest</em>}</span>
+                        <small>{placeLocation(result)} · {result.category}{result.distanceKm !== undefined && ` · ${formatDistance(result.distanceKm)}`}</small>
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
-              <p className="map-search-results__credit">Search by OpenStreetMap</p>
+              <p className="map-search-results__credit">{origin ? "Nearest to your pin first · " : "Pin your location to sort by distance · "}Search by OpenStreetMap</p>
             </section>
           )}
 
@@ -307,7 +316,7 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
                     onClick={() => selectPlace(place.id)}
                   >
                     <span>{place.name}</span>
-                    <small>{placeLocation(place)} · {place.category}</small>
+                    <small>{placeLocation(place)} · {place.category}{place.distanceKm !== undefined && ` · ${formatDistance(place.distanceKm)}`}</small>
                     {place.id === selectedPlace?.id && <Check size={17} aria-hidden="true" />}
                   </button>
                 </li>

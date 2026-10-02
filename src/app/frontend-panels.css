@@ -834,3 +834,123 @@
     text-align: left;
   }
 }
+
+/* The search box shows focus on its container; the input inside must not draw a second ring. */
+.search-field input:focus,
+.search-field input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Map toolbar on one line: search, status filters, Near me. */
+.map-toolbar {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.map-toolbar .filter-row {
+  flex-wrap: nowrap;
+}
+
+.nearest-tag {
+  margin-left: 8px;
+  padding: 2px 7px;
+  color: var(--color-surface);
+  background: var(--color-forest);
+  border-radius: var(--radius-round);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+@media (max-width: 980px) {
+  .map-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .map-toolbar .filter-row {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+@media (max-width: 560px) {
+  .map-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .map-toolbar .filter-row {
+    flex-wrap: wrap;
+  }
+}
+
+/* Profile: plain sections and rows in one narrow column, not cards inside cards. */
+.profile-settings {
+  max-width: 760px;
+  margin: 0 auto;
+  gap: 40px;
+}
+
+.profile-settings > .settings-panel {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.profile-settings .settings-panel > header {
+  padding-bottom: 10px;
+}
+
+.profile-settings .member-list,
+.profile-settings .settings-list {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.profile-settings .member-list article,
+.profile-settings .settings-list article,
+.profile-settings .frontend-panel__member-list article.is-active {
+  padding: 16px 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* No cards inside cards: the story, timeline rows, and map preview sit directly in their parent. */
+.visit-post__story {
+  padding: 4px 0 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.passport-timeline {
+  gap: 0;
+}
+
+.passport-timeline__item {
+  padding: 14px 4px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(69, 114, 87, 0.22);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.passport-timeline__item:last-child {
+  border-bottom: 0;
+}
+
+.map-preview {
+  padding: 0 0 16px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  border-radius: 0;
+  box-shadow: none;
+}

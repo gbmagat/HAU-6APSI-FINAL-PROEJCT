@@ -45,6 +45,7 @@ export default function PlaceMap({
   places,
   selectedId,
   draft,
+  target,
   userLocation,
   onSelect,
   onMapClick,
@@ -52,6 +53,7 @@ export default function PlaceMap({
   places: Place[];
   selectedId?: string;
   draft?: { latitude: number; longitude: number } | null;
+  target?: { latitude: number; longitude: number } | null;
   userLocation: MapLocation | null;
   onSelect: (id: string) => void;
   onMapClick: (location: { lat: number; lng: number }) => void;
@@ -62,12 +64,15 @@ export default function PlaceMap({
   const markersByIdRef = useRef(new Map<string, L.Marker>());
   const userMarkerRef = useRef<L.CircleMarker | null>(null);
   const draftMarkerRef = useRef<L.Marker | null>(null);
+  const routeRef = useRef<L.Polyline | null>(null);
   const fitRef = useRef<() => void>(() => undefined);
+  const userLocationRef = useRef<MapLocation | null>(userLocation);
   const handlersRef = useRef({ onSelect, onMapClick });
   const [tilesFailed, setTilesFailed] = useState(false);
 
   useEffect(() => {
     handlersRef.current = { onSelect, onMapClick };
+    userLocationRef.current = userLocation;
   });
 
   // Create the map once; Leaflet owns this element from here on.
@@ -101,6 +106,7 @@ export default function PlaceMap({
       markersRef.current = null;
       userMarkerRef.current = null;
       draftMarkerRef.current = null;
+      routeRef.current = null;
     };
   }, []);
 
@@ -182,8 +188,24 @@ export default function PlaceMap({
       keyboard: false,
       zIndexOffset: 2000,
     }).addTo(map);
-    map.setView([draft.latitude, draft.longitude], Math.max(map.getZoom(), 15), { animate: false });
+    const here = userLocationRef.current;
+    if (here) map.fitBounds([[here.lat, here.lng], [draft.latitude, draft.longitude]], { padding: [60, 60], maxZoom: 16, animate: false });
+    else map.setView([draft.latitude, draft.longitude], Math.max(map.getZoom(), 15), { animate: false });
   }, [draft]);
+
+  // A dashed line from your location to the place in focus.
+  const targetLat = target?.latitude;
+  const targetLng = target?.longitude;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    routeRef.current?.remove();
+    routeRef.current = null;
+    if (!userLocation || targetLat === undefined || targetLng === undefined) return;
+    routeRef.current = L.polyline([[userLocation.lat, userLocation.lng], [targetLat, targetLng]], {
+      color: "#1e3054", weight: 2.5, opacity: 0.7, dashArray: "6 8", interactive: false,
+    }).addTo(map);
+  }, [userLocation, targetLat, targetLng]);
 
   // Your location: a navy dot with a ring and a text label, never a place pin.
   useEffect(() => {
