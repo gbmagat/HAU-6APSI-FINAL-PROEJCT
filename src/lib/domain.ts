@@ -6,15 +6,9 @@ export type ReviewProgress =
   | "partner-review-needed"
   | "ready";
 
-export type PlaceCategory =
-  | "Museum"
-  | "Cafe"
-  | "Restaurant"
-  | "Park"
-  | "Heritage"
-  | "District"
-  | "Gallery"
-  | "Walk";
+export const placeCategories = ["Museum", "Cafe", "Restaurant", "Park", "Heritage", "District", "Gallery", "Walk"] as const;
+
+export type PlaceCategory = (typeof placeCategories)[number];
 
 export type Place = {
   id: string;
@@ -23,6 +17,7 @@ export type Place = {
   category: PlaceCategory;
   address: string;
   city: string;
+  country: string;
   latitude: number;
   longitude: number;
   status: VisitStatus;

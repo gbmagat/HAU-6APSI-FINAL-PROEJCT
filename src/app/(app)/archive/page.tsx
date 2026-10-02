@@ -61,7 +61,7 @@ export default function ArchivePage() {
         <aside className="passport-summary" aria-label="Archive summary">
           <div className="passport-metrics">
             {archiveMetrics.map((metric) => (
-              <MetricCard key={metric.label} metric={{ ...metric, value: metric.label === "Places visited" ? String(visited.length).padStart(2, "0") : String(posts.length) }} />
+              <MetricCard key={metric.label} metric={{ ...metric, value: metric.label === "Places visited" ? String(visited.length).padStart(2, "0") : String(posts.length).padStart(2, "0") }} />
             ))}
           </div>
           {nextPlace && <><h2>Next place</h2><PlaceCard place={nextPlace} /></>}

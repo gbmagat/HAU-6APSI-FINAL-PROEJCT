@@ -716,3 +716,121 @@
     bottom: 28px;
   }
 }
+
+/* Search: typing filters our places; Search looks the place up on OpenStreetMap. */
+.search-field {
+  padding-right: 6px;
+}
+
+.search-field__submit {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  color: var(--color-surface);
+  background: var(--color-forest);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search-field__submit:disabled {
+  color: var(--color-muted);
+  background: var(--color-sage);
+  opacity: 1;
+}
+
+.map-search-results {
+  display: grid;
+  gap: 8px;
+}
+
+.map-search-results h2 {
+  font-size: 15px;
+}
+
+.map-search-results__list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+}
+
+.map-search-results__list button {
+  display: grid;
+  width: 100%;
+  min-height: 52px;
+  gap: 2px;
+  padding: 9px 12px;
+  color: var(--color-navy);
+  text-align: left;
+  background: var(--color-surface-warm);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+}
+
+.map-search-results__list button:hover,
+.map-search-results__list button.is-selected {
+  background: var(--color-sage);
+  border-color: var(--color-forest);
+}
+
+.map-search-results__list span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.map-search-results__list small,
+.map-search-results__credit,
+.map-preview__address {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.place-pin--draft {
+  --pin-color: #54696d;
+}
+
+.status-badge--draft {
+  color: #54696d;
+  background: #eef0ef;
+}
+
+/* Readable list text: was 11px and 9px, below the 11px caption minimum. */
+.map-result-list span {
+  font-size: 13px;
+}
+
+.map-result-list small {
+  font-size: 11px;
+}
+
+/* Visit form: the toolbar, steps, and panel live inside the fieldset, so it carries the spacing. */
+.visit-form__fields {
+  display: grid;
+  gap: 16px;
+}
+
+.form-progress li.is-current > button > span {
+  color: var(--color-forest);
+  background: var(--color-surface);
+}
+
+.form-progress li small {
+  font-size: 12px;
+}
+
+/* Wishlist: room between the Local/International chips and the cards. */
+.wishlist-page > .filter-row {
+  margin: -8px 0 18px;
+}
+
+@media (max-width: 560px) {
+  /* Stacked headings run the full width so they line up with the content below. */
+  .page-heading {
+    align-items: stretch;
+  }
+
+  .feed-page .page-heading h1 {
+    text-align: left;
+  }
+}

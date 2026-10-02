@@ -18,6 +18,7 @@ import type {
   VisitPost,
   VisitStatus,
 } from "@/lib/domain";
+import { isSamePlace, newPlaceSchema, placeInitials, slugify, uniqueSlug, type NewPlaceInput } from "@/lib/place-input";
 import { withDerivedReviewState } from "@/lib/places";
 
 const STORAGE_KEY = "our-places-passport-preview.v1";
@@ -40,6 +41,8 @@ type NewVisitInput = {
   revisit: "yes" | "maybe" | "no";
   photoAlt?: string;
   photoUrl?: string;
+  photoWidth?: number;
+  photoHeight?: number;
 };
 
 type ReviewInput = {
@@ -71,6 +74,7 @@ type PassportContextValue = PreviewState & {
   deletePost: (postId: string) => void | Promise<void>;
   submitReview: (postId: string, review: ReviewInput) => void | Promise<void>;
   addVisit: (input: NewVisitInput, memberId?: string) => string | Promise<string>;
+  addPlace: (input: NewPlaceInput) => Promise<{ id: string; slug: string }>;
   resetPreview: () => void;
 };
 
@@ -179,7 +183,7 @@ async function readServerState(): Promise<PreviewState> {
   return syncNested(data);
 }
 
-async function sendServerRequest(url: string, body: object): Promise<{ id?: string }> {
+async function sendServerRequest(url: string, body: object): Promise<{ id?: string; slug?: string }> {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -392,13 +396,23 @@ export function PassportProvider({ children, serverMode }: { children: ReactNode
     addVisit(input, memberId = stateRef.current.currentMemberId) {
       if (serverMode) {
         return (async () => {
-          if (input.photoUrl || input.photoAlt) throw new Error("Photo uploads are not ready yet. Remove the photo to publish this experience.");
-          const result = await sendServerRequest("/api/visits", {
-            ...input,
-            photoAlt: "",
-            privateToMembers: true,
-          });
+          const { photoUrl, photoAlt, photoWidth, photoHeight, ...visit } = input;
+          const result = await sendServerRequest("/api/visits", { ...visit, photoAlt: "", privateToMembers: true });
           if (!result.id) throw new Error("The save could not be confirmed. Please retry with this draft.");
+          if (photoUrl) {
+            // The experience is saved first; the photo follows. Retrying Publish reuses the saved experience.
+            const form = new FormData();
+            form.set("photo", await (await fetch(photoUrl)).blob(), "photo.jpg");
+            form.set("alt", photoAlt?.trim() ?? "");
+            form.set("width", String(photoWidth ?? 0));
+            form.set("height", String(photoHeight ?? 0));
+            const upload = await fetch(`/api/visits/${encodeURIComponent(result.id)}/photos`, { method: "POST", body: form, credentials: "same-origin" });
+            if (!upload.ok && upload.status !== 409) {
+              await refreshServerState();
+              const data = await upload.json().catch(() => null) as { error?: string } | null;
+              throw new Error(`Your experience is saved, but the photo did not upload${data?.error ? `: ${data.error}` : "."} Press Publish again to retry the photo.`);
+            }
+          }
           await refreshServerState();
           return result.id;
         })();
@@ -443,6 +457,51 @@ export function PassportProvider({ children, serverMode }: { children: ReactNode
         } : item),
       });
       return postId;
+    },
+    async addPlace(input) {
+      const place = newPlaceSchema.parse(input);
+      if (serverMode) {
+        const response = await fetch("/api/places", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify(place),
+        });
+        const data = await response.json().catch(() => null) as { id?: string; slug?: string; error?: string } | null;
+        // Already saved is not an error for the person saving it: hand back the existing place.
+        if ((response.ok || response.status === 409) && data?.id && data.slug) {
+          await refreshServerState();
+          return { id: data.id, slug: data.slug };
+        }
+        throw new Error(data?.error || "This place could not be saved. Please try again.");
+      }
+      const current = stateRef.current;
+      const existing = current.places.find((item) => isSamePlace(item, place));
+      if (existing) return { id: existing.id, slug: existing.slug };
+      const slug = uniqueSlug(slugify(place.name), current.places.map((item) => item.slug));
+      const id = `place-${Date.now()}`;
+      commit({
+        ...current,
+        places: [...current.places, {
+          id,
+          slug,
+          name: place.name,
+          category: place.category,
+          address: place.address,
+          city: place.city,
+          country: place.country,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          status: place.status,
+          favorite: false,
+          combinedScore: null,
+          reviewProgress: "not-started",
+          visitCount: 0,
+          initials: placeInitials(place.name),
+          shortDescription: "",
+        }],
+      });
+      return { id, slug };
     },
     resetPreview() {
       if (serverMode) throw new Error("Reset is only available in the browser preview.");

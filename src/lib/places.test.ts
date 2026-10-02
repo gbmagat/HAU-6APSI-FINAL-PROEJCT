@@ -3,8 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { Member, Place, Review, VisitPost, VisitStatus } from "@/lib/domain";
 import {
   archiveTimeline,
+  filterByScope,
+  framingPlaces,
+  isLocalPlace,
   matchesPlaceQuery,
   pickNextPlace,
+  placeLocation,
   placesBounds,
   sharedScoreLabel,
   togglePlannedStatus,
@@ -114,5 +118,32 @@ describe("placesBounds", () => {
     expect(placesBounds([])).toBeNull();
     expect(placesBounds([{ latitude: Number.NaN, longitude: 121 }, { latitude: 95, longitude: 121 }])).toBeNull();
     expect(placesBounds([{ latitude: 14.5, longitude: 121 }, { latitude: Number.NaN, longitude: 0 }])).toEqual([[14.5, 121], [14.5, 121]]);
+  });
+});
+
+describe("local and international places", () => {
+  const makati = { city: "Makati", country: "Philippines" };
+  const tokyo = { city: "Tokyo", country: "Japan" };
+  const legacy = { city: "Manila", country: undefined as unknown as string };
+
+  it("treats the Philippines, any casing, and places saved before countries existed as local", () => {
+    expect(isLocalPlace(makati)).toBe(true);
+    expect(isLocalPlace({ country: " philippines " })).toBe(true);
+    expect(isLocalPlace(legacy)).toBe(true);
+    expect(isLocalPlace(tokyo)).toBe(false);
+  });
+
+  it("filters by scope and names the country only abroad", () => {
+    expect(filterByScope([makati, tokyo], "local")).toEqual([makati]);
+    expect(filterByScope([makati, tokyo], "international")).toEqual([tokyo]);
+    expect(filterByScope([makati, tokyo], "all")).toEqual([makati, tokyo]);
+    expect(placeLocation(makati)).toBe("Makati");
+    expect(placeLocation(tokyo)).toBe("Tokyo, Japan");
+    expect(placeLocation({ city: "Singapore", country: "Singapore" })).toBe("Singapore");
+  });
+
+  it("frames home first on the map, and abroad only when nothing local is shown", () => {
+    expect(framingPlaces([makati, tokyo])).toEqual([makati]);
+    expect(framingPlaces([tokyo])).toEqual([tokyo]);
   });
 });

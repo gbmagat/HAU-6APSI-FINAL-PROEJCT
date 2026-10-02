@@ -19,9 +19,10 @@ Run `npm ci`, `npm run check`, `npm run build`, and `npm run start` under a sepa
 
 With no `DATABASE_URL`, development keeps the browser-only preview. Production locks private pages instead of exposing that preview. The old `supabase/` directory is historical design work only; do not apply its migration to this PostgreSQL database.
 
-## Not ready for public deployment yet
+## Photos
 
-- The production place catalog starts empty; adding new places and a coordinate-based map still need to be completed.
-- Photo uploads and private file delivery are not implemented. The server currently accepts text-only experiences.
-- The PostgreSQL schema has an in-memory compatibility test, but the full app has not been tested against a running PostgreSQL server or on the VPS.
-- The exact subdomain and current VPS reverse-proxy configuration still need to be chosen and checked before deployment.
+Set `PHOTO_DIR` to a private directory owned by the service account, for example `/var/lib/our-places/photos`, and never inside `public/`. Back it up with the database, since visits point at files there. The reverse proxy must accept uploads of at least 10 MB (for nginx, `client_max_body_size 10m;`).
+
+## Before deployment
+
+- The exact subdomain and current VPS reverse-proxy configuration still need to be chosen and checked.

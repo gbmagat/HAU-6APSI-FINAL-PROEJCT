@@ -1,4 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,6 +25,10 @@ vi.mock("@/lib/session", () => ({
 }));
 
 import { POST as runAction } from "@/app/api/actions/route";
+import { GET as getPhoto } from "@/app/api/photos/[id]/route";
+import { POST as savePlace } from "@/app/api/places/route";
+import { POST as uploadPhoto } from "@/app/api/visits/[id]/photos/route";
+import { GET as searchPlaces } from "@/app/api/places/search/route";
 import { POST as signIn } from "@/app/api/auth/login/route";
 import { POST as submitReview } from "@/app/api/visits/[id]/review/route";
 import { POST as publishVisit } from "@/app/api/visits/route";
@@ -114,16 +120,6 @@ describe("blind reviews through the real server code", () => {
     const { id } = await publishAsOwner();
     const again = await submitReview(request(`/api/visits/${id}/review`, { rating: 5, reflection: "Trying twice.", revisit: "yes" }), { params: Promise.resolve({ id }) });
     expect(again.status).toBe(409);
-  });
-
-  it("never serves a photo URL while no photo route exists", async () => {
-    const { id } = await publishAsOwner();
-    await h.db.query(
-      "insert into visit_photos (space_id,visit_id,storage_key,alt_text,content_type,byte_size,width,height) values ($1,$2,'photos/one.jpg','A café window','image/jpeg',1000,600,400)",
-      [space, id],
-    );
-    const state = await loadServerState(space, owner);
-    expect(state.posts[0].photoUrl).toBeUndefined();
   });
 
   it("refuses to load a space for someone who is not a member", async () => {
@@ -230,5 +226,145 @@ describe("sign-in", () => {
   it("locks the account for 15 minutes after five failed attempts", async () => {
     for (let index = 0; index < 5; index += 1) expect((await attempt("wrong password!!")).status).toBe(401);
     expect((await attempt("correct horse battery")).status).toBe(429);
+  });
+});
+
+describe("saving places", () => {
+  const tokyo = { name: "teamLab Planets", category: "Museum", address: "Toyosu", city: "Tokyo", country: "Japan", latitude: 35.6491, longitude: 139.7898 };
+
+  it("saves a place from search for the shared space, abroad included", async () => {
+    as(partner);
+    const response = await savePlace(request("/api/places", tokyo));
+    expect(response.status).toBe(201);
+    const { slug } = await response.json() as { slug: string };
+    expect(slug).toBe("teamlab-planets");
+    const saved = (await loadServerState(space, owner)).places.find((place) => place.slug === slug);
+    expect(saved).toMatchObject({ name: "teamLab Planets", country: "Japan", status: "want-to-visit", initials: "TP" });
+  });
+
+  it("returns the existing place instead of saving it twice, and keeps slugs unique", async () => {
+    as(owner);
+    const first = await (await savePlace(request("/api/places", tokyo))).json() as { slug: string };
+    const again = await savePlace(request("/api/places", { ...tokyo, name: "TEAMLAB PLANETS" }));
+    expect(again.status).toBe(409);
+    expect((await again.json() as { slug: string }).slug).toBe(first.slug);
+    const elsewhere = await (await savePlace(request("/api/places", { ...tokyo, latitude: 34.69, longitude: 135.5 }))).json() as { slug: string };
+    expect(elsewhere.slug).toBe("teamlab-planets-2");
+  });
+
+  it("rejects bad input, other sites, and signed-out requests", async () => {
+    as(owner);
+    expect((await savePlace(request("/api/places", { ...tokyo, latitude: 200 }))).status).toBe(400);
+    expect((await savePlace(request("/api/places", tokyo, "https://evil.example"))).status).toBe(403);
+    h.session = null;
+    expect((await savePlace(request("/api/places", tokyo))).status).toBe(401);
+  });
+
+  it("stores the country, defaulting old places to the Philippines", async () => {
+    expect((await loadServerState(space, owner)).places.find((place) => place.id === "place-1")?.country).toBe("Philippines");
+  });
+});
+
+describe("searching OpenStreetMap", () => {
+  const search = (q: string) => searchPlaces(new NextRequest(`${ORIGIN}/api/places/search?q=${encodeURIComponent(q)}`));
+
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+  it("asks members only, identifies the app, and maps the results", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{
+      place_id: 7, lat: "15.0286", lon: "120.6898", name: "San Fernando",
+      display_name: "San Fernando, Pampanga, Philippines", category: "boundary", type: "administrative",
+      address: { city: "San Fernando", country: "Philippines" },
+    }]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    h.session = null;
+    expect((await search("san fernando pampanga")).status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    as(owner);
+    const response = await search("san fernando pampanga");
+    expect(response.status).toBe(200);
+    expect((await response.json() as { results: { city: string }[] }).results[0].city).toBe("San Fernando");
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(String(url)).toContain("nominatim.openstreetmap.org/search");
+    expect((init.headers as Record<string, string>)["User-Agent"]).toContain("OurPlaces");
+
+    expect((await search("San Fernando  Pampanga")).status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects very short searches and reports an unavailable service", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+    as(owner);
+    expect((await search("a")).status).toBe(400);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("busy", { status: 503 })));
+    expect((await search("somewhere new entirely")).status).toBe(502);
+  });
+});
+
+describe("private photos", () => {
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01]);
+  let photoDir = "";
+
+  const upload = (visitId: string, bytes: Uint8Array = jpeg, origin = ORIGIN, fields: Record<string, string> = {}) => {
+    const form = new FormData();
+    form.set("photo", new Blob([bytes as BlobPart], { type: "image/jpeg" }), "photo.jpg");
+    for (const [name, value] of Object.entries({ alt: "A rainy café window", width: "1200", height: "800", ...fields })) form.set(name, value);
+    return uploadPhoto(new NextRequest(`${ORIGIN}/api/visits/${visitId}/photos`, { method: "POST", headers: { origin }, body: form }), { params: Promise.resolve({ id: visitId }) });
+  };
+  const fetchPhoto = (photoId: string) => getPhoto(new NextRequest(`${ORIGIN}/api/photos/${photoId}`), { params: Promise.resolve({ id: photoId }) });
+
+  beforeEach(async () => {
+    photoDir = await mkdtemp(join(tmpdir(), "our-places-photos-"));
+    vi.stubEnv("PHOTO_DIR", photoDir);
+  });
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await rm(photoDir, { recursive: true, force: true });
+  });
+
+  it("stores the author's photo privately and serves it only inside the space", async () => {
+    const { id } = await publishAsOwner();
+    const response = await upload(id);
+    expect(response.status).toBe(201);
+    const { id: photoId } = await response.json() as { id: string };
+    expect(await readdir(photoDir)).toHaveLength(1);
+
+    const state = await loadServerState(space, partner);
+    expect(state.posts[0]).toMatchObject({ photoUrl: `/api/photos/${photoId}`, photoAlt: "A rainy café window" });
+
+    as(partner);
+    const served = await fetchPhoto(photoId);
+    expect(served.status).toBe(200);
+    expect(served.headers.get("content-type")).toBe("image/jpeg");
+    expect(new Uint8Array(await served.arrayBuffer())).toEqual(jpeg);
+
+    as(outsider, otherSpace);
+    expect((await fetchPhoto(photoId)).status).toBe(404);
+    h.session = null;
+    expect((await fetchPhoto(photoId)).status).toBe(401);
+  });
+
+  it("refuses files that are not really images, other people's posts, a second photo, and other sites", async () => {
+    const { id } = await publishAsOwner();
+    expect((await upload(id, new TextEncoder().encode("<script>not an image</script>"))).status).toBe(400);
+    expect((await upload(id, jpeg, ORIGIN, { width: "0" }))).toHaveProperty("status", 400);
+    expect((await upload(id, jpeg, "https://evil.example")).status).toBe(403);
+    as(partner);
+    expect((await upload(id)).status).toBe(404);
+    as(owner);
+    expect((await upload(id)).status).toBe(201);
+    expect((await upload(id)).status).toBe(409);
+    expect(await readdir(photoDir)).toHaveLength(1);
+  });
+
+  it("deletes the photo file together with the post", async () => {
+    const { id } = await publishAsOwner();
+    await upload(id);
+    expect(await readdir(photoDir)).toHaveLength(1);
+    expect((await runAction(request("/api/actions", { action: "deletePost", postId: id }))).status).toBe(200);
+    expect(await readdir(photoDir)).toHaveLength(0);
   });
 });
