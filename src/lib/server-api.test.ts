@@ -30,6 +30,7 @@ import { POST as savePlace } from "@/app/api/places/route";
 import { POST as uploadPhoto } from "@/app/api/visits/[id]/photos/route";
 import { GET as aboutPlace } from "@/app/api/places/about/route";
 import { GET as searchPlaces } from "@/app/api/places/search/route";
+import { GET as findRoute } from "@/app/api/route/route";
 import { POST as signIn } from "@/app/api/auth/login/route";
 import { POST as submitReview } from "@/app/api/visits/[id]/review/route";
 import { POST as publishVisit } from "@/app/api/visits/route";
@@ -423,5 +424,44 @@ describe("place details", () => {
     expect((await about("name=Hidden%20Garden")).status).toBe(400);
     h.session = null;
     expect((await about("name=Hidden%20Garden&lat=14.6&lng=121.0")).status).toBe(401);
+  });
+});
+
+describe("shortest road route", () => {
+  const roads = {
+    elements: [
+      { type: "node", id: 1, lat: 14.001, lon: 121.0 }, { type: "node", id: 2, lat: 14.001, lon: 121.001 },
+      { type: "node", id: 3, lat: 14.001, lon: 121.002 }, { type: "node", id: 4, lat: 14.0, lon: 121.002 },
+      { type: "way", id: 10, nodes: [1, 2, 3], tags: { highway: "residential" } },
+      { type: "way", id: 20, nodes: [3, 4], tags: { highway: "residential" } },
+    ],
+  };
+  const route = (query: string) => findRoute(new NextRequest(`${ORIGIN}/api/route?${query}`));
+
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+  it("finds the road route with Dijkstra and reports both distances", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+    as(owner);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(roads), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await route("fromLat=14.001&fromLng=121.0&toLat=14.0&toLng=121.002");
+    expect(response.status).toBe(200);
+    const body = await response.json() as { distanceKm: number; straightKm: number; path: [number, number][] };
+    expect(body.path).toEqual([[14.001, 121.0], [14.001, 121.0], [14.001, 121.001], [14.001, 121.002], [14.0, 121.002], [14.0, 121.002]]);
+    expect(body.distanceKm).toBeGreaterThan(body.straightKm);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://overpass-api.de/api/interpreter");
+    expect(String(init.body)).toContain("highway");
+  });
+
+  it("refuses long trips, missing coordinates, and signed-out requests", async () => {
+    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+    as(owner);
+    const far = await route("fromLat=14.6&fromLng=121.0&toLat=15.03&toLng=120.69");
+    expect(far.status).toBe(422);
+    expect((await route("fromLat=14.6&fromLng=121.0")).status).toBe(400);
+    h.session = null;
+    expect((await route("fromLat=14.001&fromLng=121.0&toLat=14.0&toLng=121.002")).status).toBe(401);
   });
 });

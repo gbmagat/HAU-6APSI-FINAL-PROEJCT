@@ -991,3 +991,30 @@
   overflow-wrap: anywhere;
   text-align: right;
 }
+
+/* Shortest route (Dijkstra) and directions under the selected place. */
+.map-route {
+  display: grid;
+  gap: 6px;
+}
+
+.map-route p {
+  display: grid;
+  gap: 2px;
+  color: var(--color-navy);
+  font-size: 13px;
+}
+
+.map-route small {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.map-route__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  color: var(--color-muted);
+  font-size: 12px;
+}

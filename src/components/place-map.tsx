@@ -46,6 +46,7 @@ export default function PlaceMap({
   selectedId,
   draft,
   target,
+  routePath,
   userLocation,
   onSelect,
   onMapClick,
@@ -54,6 +55,7 @@ export default function PlaceMap({
   selectedId?: string;
   draft?: { latitude: number; longitude: number } | null;
   target?: { latitude: number; longitude: number } | null;
+  routePath?: [number, number][] | null;
   userLocation: MapLocation | null;
   onSelect: (id: string) => void;
   onMapClick: (location: { lat: number; lng: number }) => void;
@@ -193,7 +195,7 @@ export default function PlaceMap({
     else map.setView([draft.latitude, draft.longitude], Math.max(map.getZoom(), 15), { animate: false });
   }, [draft]);
 
-  // A dashed line from your location to the place in focus.
+  // The road route when one has been found; otherwise a dashed straight line to the place in focus.
   const targetLat = target?.latitude;
   const targetLng = target?.longitude;
   useEffect(() => {
@@ -201,11 +203,16 @@ export default function PlaceMap({
     if (!map) return;
     routeRef.current?.remove();
     routeRef.current = null;
+    if (routePath?.length) {
+      routeRef.current = L.polyline(routePath, { color: "#315641", weight: 5, opacity: 0.85, interactive: false }).addTo(map);
+      map.fitBounds(routeRef.current.getBounds(), { padding: [48, 48], maxZoom: 17, animate: false });
+      return;
+    }
     if (!userLocation || targetLat === undefined || targetLng === undefined) return;
     routeRef.current = L.polyline([[userLocation.lat, userLocation.lng], [targetLat, targetLng]], {
       color: "#1e3054", weight: 2.5, opacity: 0.7, dashArray: "6 8", interactive: false,
     }).addTo(map);
-  }, [userLocation, targetLat, targetLng]);
+  }, [userLocation, targetLat, targetLng, routePath]);
 
   // Your location: a navy dot with a ring and a text label, never a place pin.
   useEffect(() => {
