@@ -9,6 +9,8 @@ This application now uses its own PostgreSQL database and Next.js route handlers
 3. Set `DATABASE_URL` in a protected server-only environment file. Never use a `NEXT_PUBLIC_` variable for it or commit the real value.
 4. In an interactive terminal, run `node scripts/provision-space.mjs --database our_places --owner-email YOU@example.com --owner-name "Your name" --partner-email PARTNER@example.com --partner-name "Partner name"`. Replace the placeholders and use the actual dedicated database name. The script checks the target, asks for confirmation, and prompts for passwords without echo.
 
+5. Add places with SQL, since there is no "Add place" screen yet: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/sample-places.sql` loads seven sample places, and the file shows how to add your own.
+
 There is no public registration. The two accounts share one space. Private sessions are stored in PostgreSQL; the browser receives only a Secure, HttpOnly session cookie when running over HTTPS.
 
 ## Run and isolate

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getPool } from "@/lib/db";
+import { isSameOriginRequest } from "@/lib/origin";
 import { getCurrentSession } from "@/lib/session";
 
 const placeId = z.string().trim().min(1).max(80);
@@ -50,7 +51,7 @@ async function transaction<T>(work: (client: PoolClient) => Promise<T>): Promise
 export async function POST(request: NextRequest) {
   try {
     // Browser writes must come from this site, including behind the HTTPS proxy.
-    if (request.headers.get("origin") !== request.nextUrl.origin) {
+    if (!isSameOriginRequest(request)) {
       return response({ error: "This request could not be verified." }, 403);
     }
     const session = await getCurrentSession();

@@ -64,6 +64,11 @@ The app runs in one of three modes:
    node scripts/provision-space.mjs --database our_places --owner-email YOU@example.com --owner-name "Your name" --partner-email PARTNER@example.com --partner-name "Partner name"
    ```
 
+4. Add places. There is no "Add place" screen yet, so places are added with SQL; [db/sample-places.sql](db/sample-places.sql) loads seven sample places and doubles as a template for your own.
+   ```bash
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/sample-places.sql
+   ```
+
 See [db/README.md](db/README.md) for server and hosting notes. The `supabase/` folder is an earlier design kept for history; do not apply it.
 
 ## Commands
@@ -107,7 +112,7 @@ supabase/         Earlier Supabase design, not used
 
 ## Testing
 
-`npm run check` runs 48 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking blind reviews, retry safety, cross-site and signed-out rejection, per-member favorites, post deletion, and sign-in lockout.
+`npm run check` runs 55 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking blind reviews, retry safety, cross-site and signed-out rejection, per-member favorites, post deletion, and sign-in lockout.
 
 ## Screenshots
 
