@@ -9,7 +9,7 @@ const post = (id: string, reviews: Review[], extra: Partial<VisitPost> = {}) =>
   ({ id, reviews, place: { favorite: false }, ...extra }) as VisitPost;
 
 describe("filterPosts", () => {
-  const posts = [post("pending", one), post("revealed", two), post("photo", two, { photoUrl: "data:image/jpeg;base64,AA" }), post("alt-only", two, { photoAlt: "A described photo" })];
+  const posts = [post("pending", one), post("revealed", two), post("photo", two, { photos: [{ url: "data:image/jpeg;base64,AA" }] }), post("no-photos", two, { photos: [] })];
 
   it("keeps every post for all stories", () => {
     expect(filterPosts(posts, "all")).toHaveLength(4);
@@ -19,7 +19,7 @@ describe("filterPosts", () => {
     expect(filterPosts(posts, "pending").map((item) => item.id)).toEqual(["pending"]);
   });
 
-  it("counts only posts that actually have a photo, not alt text alone", () => {
+  it("counts only posts that actually have a photo, not an empty photo list", () => {
     expect(filterPosts(posts, "photos").map((item) => item.id)).toEqual(["photo"]);
   });
 });

@@ -263,7 +263,6 @@ export const visitPosts: VisitPost[] = [
     title: "The last gallery stayed with us",
     story:
       "We slowed down near the end and returned to the first rooms before leaving. The second walk through felt completely different.",
-    photoAlt: "A softly lit grid of quiet museum gallery rooms.",
     reviews: [gabNationalReview],
     comments: 1,
     reactions: [

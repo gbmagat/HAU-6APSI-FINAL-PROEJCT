@@ -1850,13 +1850,6 @@ ol {
   padding-bottom: 8px;
 }
 
-.visit-post__photo {
-  aspect-ratio: 3 / 2;
-  background: var(--color-sage) center / cover no-repeat;
-  border: 1px solid rgba(69, 114, 87, 0.2);
-  border-radius: var(--radius-md);
-}
-
 .visit-post__story {
   display: grid;
   gap: 10px;

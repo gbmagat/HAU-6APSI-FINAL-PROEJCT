@@ -5,6 +5,7 @@ import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
 import { usePassport } from "@/components/passport-provider";
+import { PostPhotos } from "@/components/post-photos";
 import type { VisitPost } from "@/lib/domain";
 import { postStatusLabel } from "@/lib/feed";
 
@@ -71,7 +72,7 @@ export function VisitPostCard({ post }: { post: VisitPost }) {
         </div>
       </header>
       <div className="visit-post__content">
-        {livePost.photoUrl && <div className="visit-post__photo" role="img" aria-label={livePost.photoAlt || "Shared place photo"} style={{ backgroundImage: `url(${livePost.photoUrl})` }} />}
+        <PostPhotos photos={livePost.photos ?? []} title={livePost.title || livePost.place.name} />
         <div className="visit-post__story"><Link href={`/places/${livePost.place.slug}`}>{livePost.place.name}</Link>{livePost.title && <h3>{livePost.title}</h3>}<p>{livePost.story}</p></div>
       </div>
       <footer className="visit-post__footer">

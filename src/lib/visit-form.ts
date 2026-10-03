@@ -6,6 +6,9 @@ export function todayInManila() {
   }).format(new Date());
 }
 
+// Photos per experience; they upload one at a time after the experience is saved.
+export const MAX_VISIT_PHOTOS = 6;
+
 export const visitFormSchema = z.object({
   placeId: z.string().min(1, "Choose a place.").max(80),
   visitedOn: z.iso.date("Enter a valid visit date.")
@@ -15,7 +18,6 @@ export const visitFormSchema = z.object({
     .trim()
     .min(20, "Share at least 20 characters from the experience.")
     .max(1200),
-  photoAlt: z.string().trim().max(240),
   rating: z.number().int().min(1, "Choose a rating.").max(5),
   reflection: z
     .string()
@@ -34,7 +36,8 @@ export const publishVisitSchema = visitFormSchema.extend({
   idempotencyKey: z.uuid(),
   title: z.string().trim().min(1).max(160),
   exhibition: z.string().trim().max(160),
-  photoAlt: z.literal("", { error: "Photo uploads are not available yet." }),
+  // Photos and their descriptions are uploaded separately, after the experience exists.
+  photoAlt: z.literal("", { error: "Send photos to the photo upload instead." }).optional(),
 });
 
 export const submitReviewSchema = visitFormSchema.pick({

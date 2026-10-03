@@ -14,7 +14,7 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 - **Shortest route.** Once your location is pinned, picking a place draws the shortest road route to it. The server builds a graph from OpenStreetMap roads (road points as nodes, segments weighted by length, one-way streets in one direction) and runs Dijkstra's algorithm with a binary-heap priority queue. Trips up to 10 km use every road; trips up to 40 km use main roads between the two ends. Roads are downloaded once per map tile and saved, so later routes in the same area take a fraction of a second. Longer trips link to directions instead.
 - **Place details.** A place page adds its website, opening hours, phone, and a Wikipedia summary when OpenStreetMap has them, plus a link to its reviews on Google Maps.
 - **Local or international.** The wishlist filters saved places by whether they are in the Philippines or abroad.
-- **Log an experience** in four steps: place and date, story, an optional photo, and a private rating with a short reflection. Photos are stored privately on the server and shown only to the two members.
+- **Log an experience** in four steps: place and date, story, up to six photos (each with its own description), and a private rating with a short reflection. Photos are stored privately on the server and shown only to the two members, as a gallery that opens into a full-size viewer.
 - **Blind reviews.** Your partner's review is withheld by the server query until both reviews exist, then the shared score appears.
 - **Feed** with filters for photos and pending reviews, plus reactions and private comments.
 - **Place pages, wishlist, archive, and profile** with display names and preferences.
@@ -103,7 +103,7 @@ Sign in, find a place on the map, and log an experience with your own review. Yo
 | `GET /api/places/about?name=&lat=&lng=` | Public details for a place: website, hours, phone, and a Wikipedia summary |
 | `GET /api/route?fromLat=&fromLng=&toLat=&toLng=` | Shortest road route up to 40 km, found with Dijkstra's algorithm over OpenStreetMap roads |
 | `POST /api/places` | Save a place found in search; the same name within about 50 metres returns the existing place |
-| `POST /api/visits/{id}/photos` | Upload the author's photo for an experience: JPEG, PNG, or WebP up to 8 MB, checked by its bytes |
+| `POST /api/visits/{id}/photos` | Upload one of the author's photos for an experience (up to six, in order): JPEG, PNG, or WebP up to 8 MB, checked by its bytes. A retried upload returns the photo already saved |
 | `GET /api/photos/{id}` | Serve a photo only to members of the space that owns it |
 
 All write routes reject requests from other origins and require a session. Personal responses are sent with `Cache-Control: private, no-store`.
@@ -124,7 +124,7 @@ supabase/         Earlier Supabase design, not used
 
 ## Testing
 
-`npm run check` runs 104 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking Dijkstra's shortest paths, saved road tiles, distance ranking, blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload and delivery, post deletion, and sign-in lockout.
+`npm run check` runs 107 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking Dijkstra's shortest paths, saved road tiles, distance ranking, blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload, ordering, retries, and delivery, post deletion, and sign-in lockout.
 
 ## Screenshots
 
@@ -138,6 +138,6 @@ supabase/         Earlier Supabase design, not used
 
 - End-to-end testing ran the production build against PostgreSQL 18 through PGlite's network server with both accounts; the VPS's own PostgreSQL is still to be used.
 - Map tiles and place search use OpenStreetMap's public services, which suit light personal use. Searches pass through your server, but tiles are loaded by the browser and reveal which area you are viewing.
-- Each experience keeps one photo. Photos live on disk, so back up `PHOTO_DIR` together with the database.
+- Each experience keeps up to six photos, and photos cannot yet be removed or reordered after publishing. Photos live on disk, so back up `PHOTO_DIR` together with the database.
 - Review reminders are saved as a preference but no notifications are sent.
 - Next: deploy to the VPS behind HTTPS with backups and a tested restore.

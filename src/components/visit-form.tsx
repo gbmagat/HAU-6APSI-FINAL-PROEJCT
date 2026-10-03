@@ -14,10 +14,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { usePassport } from "@/components/passport-provider";
+import { type NewVisitPhoto, usePassport } from "@/components/passport-provider";
 import type { Place } from "@/lib/domain";
 import { placeLocation } from "@/lib/places";
-import { todayInManila, visitFormSchema, type VisitFormInput } from "@/lib/visit-form";
+import { MAX_VISIT_PHOTOS, todayInManila, visitFormSchema, type VisitFormInput } from "@/lib/visit-form";
 
 const steps = ["Place", "Story", "Photos", "Review & publish"] as const;
 const ratingLabels = [
@@ -29,7 +29,52 @@ const ratingLabels = [
   "Unforgettable",
 ] as const;
 
-const stepForField = { placeId: 0, visitedOn: 0, story: 1, photoAlt: 2 } as const;
+const stepForField = { placeId: 0, visitedOn: 0, story: 1 } as const;
+
+type DraftPhoto = NewVisitPhoto & { key: string };
+
+/** Photos kept in a saved draft: resized images as data URLs, each with its description. */
+function draftPhotosFrom(draft: { photos?: unknown; photoUrl?: unknown; photoWidth?: unknown; photoHeight?: unknown; values?: unknown }): DraftPhoto[] {
+  // Drafts saved before several photos were allowed hold one photo as photoUrl.
+  const list: unknown[] = Array.isArray(draft.photos) ? draft.photos : draft.photoUrl
+    ? [{ url: draft.photoUrl, alt: (draft.values as { photoAlt?: unknown } | undefined)?.photoAlt, width: draft.photoWidth, height: draft.photoHeight }]
+    : [];
+  return list
+    .filter((photo): photo is { url: string; alt?: unknown; width?: unknown; height?: unknown } =>
+      typeof photo === "object" && photo !== null && typeof (photo as { url?: unknown }).url === "string"
+      && (photo as { url: string }).url.startsWith("data:image/"))
+    .slice(0, MAX_VISIT_PHOTOS)
+    .map((photo) => ({
+      key: crypto.randomUUID(),
+      url: photo.url,
+      alt: typeof photo.alt === "string" ? photo.alt.slice(0, 240) : "",
+      width: Number(photo.width) || 1,
+      height: Number(photo.height) || 1,
+    }));
+}
+
+/** Read an image file and shrink it to at most 1200 px on its longer side, as a JPEG data URL. */
+async function preparePhoto(file: File): Promise<NewVisitPhoto> {
+  const source = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Could not read image"));
+    reader.onerror = () => reject(new Error("Could not read image"));
+    reader.readAsDataURL(file);
+  });
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image();
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(new Error("Could not decode image"));
+    element.src = source;
+  });
+  const maxDimension = 1200;
+  const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return { url: canvas.toDataURL("image/jpeg", 0.78), alt: "", width: canvas.width, height: canvas.height };
+}
 
 export function VisitForm({
   places,
@@ -52,7 +97,6 @@ export function VisitForm({
     placeId: initialPlace?.id ?? "",
     visitedOn: "",
     story: "",
-    photoAlt: "",
     rating: 0,
     reflection: "",
     revisit: "yes",
@@ -60,8 +104,8 @@ export function VisitForm({
   });
   const [title, setTitle] = useState("");
   const [exhibition, setExhibition] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [photoSize, setPhotoSize] = useState({ width: 0, height: 0 });
+  const [photos, setPhotos] = useState<DraftPhoto[]>([]);
+  const [addingPhotos, setAddingPhotos] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMessage, setStatusMessage] = useState("");
   const [publishing, setPublishing] = useState(false);
@@ -109,9 +153,13 @@ export function VisitForm({
     setStatusMessage("");
   }
 
+  function savedPhotos(): NewVisitPhoto[] {
+    return photos.map(({ url, alt, width, height }) => ({ url, alt, width, height }));
+  }
+
   function saveDraft() {
     try {
-      window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photoUrl, photoWidth: photoSize.width, photoHeight: photoSize.height, step, idempotencyKey }));
+      window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photos: savedPhotos(), step, idempotencyKey }));
       setStatusMessage("Draft saved on this device.");
     } catch {
       setStatusMessage("This browser could not save the draft. Keep this page open to preserve your text.");
@@ -129,9 +177,10 @@ export function VisitForm({
         values?: VisitFormInput;
         title?: string;
         exhibition?: string;
-        photoUrl?: string;
-        photoWidth?: number;
-        photoHeight?: number;
+        photos?: unknown;
+        photoUrl?: unknown;
+        photoWidth?: unknown;
+        photoHeight?: unknown;
         step?: number;
         idempotencyKey?: string;
       };
@@ -141,8 +190,7 @@ export function VisitForm({
       setValues((current) => ({ ...current, ...draft.values, privateToMembers: true }));
       setTitle(typeof draft.title === "string" ? draft.title : "");
       setExhibition(typeof draft.exhibition === "string" ? draft.exhibition : "");
-      setPhotoUrl(typeof draft.photoUrl === "string" ? draft.photoUrl : "");
-      setPhotoSize({ width: Number(draft.photoWidth) || 0, height: Number(draft.photoHeight) || 0 });
+      setPhotos(draftPhotosFrom(draft));
       if (draft.idempotencyKey && /^[\da-f]{8}-[\da-f-]{27}$/i.test(draft.idempotencyKey)) setIdempotencyKey(draft.idempotencyKey as `${string}-${string}-${string}-${string}-${string}`);
       setStep(Math.min(Math.max(Number.isInteger(draft.step) ? draft.step! : 0, 0), steps.length - 1));
       setStatusMessage("Draft restored.");
@@ -151,41 +199,38 @@ export function VisitForm({
     }
   }
 
-  async function handlePhoto(file: File | undefined) {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setStatusMessage("Choose an image file.");
-      return;
+  async function handlePhotos(files: File[]) {
+    if (!files.length || addingPhotos) return;
+    const room = MAX_VISIT_PHOTOS - photos.length;
+    const usable = files.filter((file) => file.type.startsWith("image/") && file.size <= 8 * 1024 * 1024);
+    const skipped = files.length - usable.length;
+    setAddingPhotos(true);
+    const added: DraftPhoto[] = [];
+    let failed = 0;
+    for (const file of usable.slice(0, room)) {
+      try {
+        added.push({ ...await preparePhoto(file), key: crypto.randomUUID() });
+      } catch {
+        failed += 1;
+      }
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setStatusMessage("Choose an image smaller than 8 MB.");
-      return;
-    }
-    try {
-      const source = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Could not read image"));
-        reader.onerror = () => reject(new Error("Could not read image"));
-        reader.readAsDataURL(file);
-      });
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const element = new Image();
-        element.onload = () => resolve(element);
-        element.onerror = () => reject(new Error("Could not decode image"));
-        element.src = source;
-      });
-      const maxDimension = 1200;
-      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-      canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
-      setPhotoUrl(canvas.toDataURL("image/jpeg", 0.78));
-      setPhotoSize({ width: canvas.width, height: canvas.height });
-      setStatusMessage(passport.serverMode ? "Photo added. It uploads when you publish." : "Photo added to this browser preview.");
-    } catch {
-      setStatusMessage("That photo could not be prepared. Try another image.");
-    }
+    setPhotos((current) => [...current, ...added].slice(0, MAX_VISIT_PHOTOS));
+    setAddingPhotos(false);
+    const notes = [
+      added.length ? `${added.length} ${added.length === 1 ? "photo" : "photos"} added${passport.serverMode ? ", uploading when you publish" : ""}.` : "",
+      skipped ? `${skipped} skipped: only images under 8 MB.` : "",
+      failed ? `${failed} could not be read.` : "",
+      usable.length > room ? `An experience keeps up to ${MAX_VISIT_PHOTOS} photos.` : "",
+    ];
+    setStatusMessage(notes.filter(Boolean).join(" "));
+  }
+
+  function updatePhotoAlt(key: string, alt: string) {
+    setPhotos((current) => current.map((photo) => photo.key === key ? { ...photo, alt } : photo));
+  }
+
+  function removePhoto(key: string) {
+    setPhotos((current) => current.filter((photo) => photo.key !== key));
   }
 
   async function publishVisit() {
@@ -204,7 +249,7 @@ export function VisitForm({
     setPublishing(true);
     setStatusMessage("");
     // Retain both text and retry key if the connection drops after the database saves.
-    try { window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photoUrl, photoWidth: photoSize.width, photoHeight: photoSize.height, step, idempotencyKey })); } catch {}
+    try { window.localStorage.setItem(draftKey, JSON.stringify({ values, title, exhibition, photos: savedPhotos(), step, idempotencyKey })); } catch {}
     try {
       await passport.addVisit({
         idempotencyKey,
@@ -216,10 +261,7 @@ export function VisitForm({
         rating: result.data.rating,
         reflection: result.data.reflection,
         revisit: result.data.revisit,
-        photoAlt: result.data.photoAlt,
-        photoUrl: photoUrl || undefined,
-        photoWidth: photoSize.width,
-        photoHeight: photoSize.height,
+        photos: savedPhotos(),
       }, activeMemberId);
       try { window.localStorage.removeItem(draftKey); } catch {}
       router.push("/feed?published=1");
@@ -328,21 +370,49 @@ export function VisitForm({
         {step === 2 && (
           <fieldset>
             <legend>Photos</legend>
-            <p className="field-hint">{passport.serverMode ? "Add one photo to keep with this memory. Only the two of you can see it." : "Add one image to keep with this memory. It is resized and saved only in this browser preview."}</p>
-            <label className="photo-dropzone">
-              <ImagePlus size={24} aria-hidden="true" />
-              <span>{photoUrl ? "Replace photo" : "Choose a photo"}</span>
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void handlePhoto(event.target.files?.[0])} />
-            </label>
-            {photoUrl && (
-              <div className="photo-preview">
-                {/* A data URL is intentionally used here: the preview has no remote image host. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoUrl} alt={values.photoAlt || "Preview of this place memory"} />
-                <button type="button" className="icon-button" onClick={() => { setPhotoUrl(""); setPhotoSize({ width: 0, height: 0 }); }} aria-label="Remove photo"><X size={17} aria-hidden="true" /></button>
-              </div>
+            <p className="field-hint">
+              {passport.serverMode
+                ? `Add up to ${MAX_VISIT_PHOTOS} photos. Only the two of you can see them.`
+                : `Add up to ${MAX_VISIT_PHOTOS} photos. They are resized and kept only in this browser preview.`}
+            </p>
+            {photos.length < MAX_VISIT_PHOTOS && (
+              <label className="photo-dropzone">
+                <ImagePlus size={24} aria-hidden="true" />
+                <strong>{addingPhotos ? "Preparing photos…" : photos.length ? "Add more photos" : "Choose photos"}</strong>
+                <span>{photos.length} of {MAX_VISIT_PHOTOS} · JPEG, PNG, or WebP</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={addingPhotos}
+                  onChange={(event) => {
+                    void handlePhotos(Array.from(event.target.files ?? []));
+                    event.target.value = "";
+                  }}
+                />
+              </label>
             )}
-            {photoUrl && <label className="field"><span>Photo description <small>(optional)</small></span><input value={values.photoAlt} maxLength={240} placeholder="Describe what the photo shows" onChange={(event) => updateValue("photoAlt", event.target.value)} /></label>}
+            {photos.length > 0 && (
+              <ul className="photo-previews" aria-label="Chosen photos">
+                {photos.map((photo, index) => (
+                  <li key={photo.key} className="photo-preview">
+                    <div className="photo-preview__image">
+                      {/* A data URL is intentionally used here: the photo has not been uploaded yet. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photo.url} alt={photo.alt || `Photo ${index + 1}`} />
+                      {index === 0 && photos.length > 1 && <span className="photo-preview__cover">Cover</span>}
+                      <button type="button" className="icon-button" onClick={() => removePhoto(photo.key)} aria-label={`Remove photo ${index + 1}`}>
+                        <X size={17} aria-hidden="true" />
+                      </button>
+                    </div>
+                    <label className="field">
+                      <span className="sr-only">Description of photo {index + 1} (optional)</span>
+                      <input value={photo.alt} maxLength={240} placeholder="Describe this photo (optional)" onChange={(event) => updatePhotoAlt(photo.key, event.target.value)} />
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
           </fieldset>
         )}
 

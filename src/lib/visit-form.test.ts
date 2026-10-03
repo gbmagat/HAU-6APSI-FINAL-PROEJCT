@@ -6,7 +6,6 @@ const valid = {
   placeId: "place-1",
   visitedOn: "2026-09-20",
   story: "A memory long enough to keep for both of us.",
-  photoAlt: "",
   rating: 4,
   reflection: "Worth returning.",
   revisit: "yes",
@@ -45,8 +44,9 @@ describe("visit form validation", () => {
 describe("server publish and review validation", () => {
   const publish = { ...valid, idempotencyKey: "30000000-0000-4000-8000-000000000001", title: "A visit", exhibition: "" };
 
-  it("rejects photo metadata while uploads are unavailable", () => {
+  it("keeps photo descriptions out of the experience itself; they travel with each photo upload", () => {
     expect(publishVisitSchema.safeParse(publish).success).toBe(true);
+    expect(publishVisitSchema.safeParse({ ...publish, photoAlt: "" }).success).toBe(true);
     expect(publishVisitSchema.safeParse({ ...publish, photoAlt: "A photo" }).success).toBe(false);
   });
 
