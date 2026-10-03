@@ -437,28 +437,77 @@ describe("shortest road route", () => {
     ],
   };
   const route = (query: string) => findRoute(new NextRequest(`${ORIGIN}/api/route?${query}`));
+  let roadDir = "";
 
-  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
-
-  it("finds the road route with Dijkstra and reports both distances", async () => {
+  beforeEach(async () => {
+    roadDir = await mkdtemp(join(tmpdir(), "our-places-roads-"));
+    vi.stubEnv("ROAD_CACHE_DIR", roadDir);
     vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
+  });
+  afterEach(async () => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    await rm(roadDir, { recursive: true, force: true });
+  });
+
+  it("finds the road route with Dijkstra, reports both distances, and keeps the roads for next time", async () => {
     as(owner);
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(roads), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const response = await route("fromLat=14.001&fromLng=121.0&toLat=14.0&toLng=121.002");
     expect(response.status).toBe(200);
-    const body = await response.json() as { distanceKm: number; straightKm: number; path: [number, number][] };
+    const body = await response.json() as { distanceKm: number; straightKm: number; path: [number, number][]; network: string };
     expect(body.path).toEqual([[14.001, 121.0], [14.001, 121.0], [14.001, 121.001], [14.001, 121.002], [14.0, 121.002], [14.0, 121.002]]);
     expect(body.distanceKm).toBeGreaterThan(body.straightKm);
+    expect(body.network).toBe("all");
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://overpass-api.de/api/interpreter");
-    expect(String(init.body)).toContain("highway");
+    expect(String(init.body)).toContain("residential");
+    expect((await readdir(roadDir)).filter((file) => file.endsWith(".json")).length).toBeGreaterThan(0);
+
+    // Another trip in the same area reuses the saved roads instead of downloading them again.
+    const again = await route("fromLat=14.0009&fromLng=121.0001&toLat=14.0001&toLng=121.0019");
+    expect(again.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses main roads between the two ends of a longer trip", async () => {
+    as(owner);
+    // Main roads: one primary road north to south. Every road: short streets from each end onto it.
+    const main = { elements: [
+      { type: "node", id: 201, lat: 14.2, lon: 121.301 }, { type: "node", id: 202, lat: 14.25, lon: 121.301 },
+      { type: "node", id: 203, lat: 14.3, lon: 121.301 },
+      { type: "way", id: 300, nodes: [201, 202, 203], tags: { highway: "primary" } },
+    ] };
+    const streets = { elements: [
+      { type: "node", id: 201, lat: 14.2, lon: 121.301 }, { type: "node", id: 211, lat: 14.2, lon: 121.3 },
+      { type: "node", id: 203, lat: 14.3, lon: 121.301 }, { type: "node", id: 213, lat: 14.3, lon: 121.3 },
+      { type: "way", id: 310, nodes: [211, 201], tags: { highway: "residential" } },
+      { type: "way", id: 311, nodes: [203, 213], tags: { highway: "residential" } },
+    ] };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      new Response(JSON.stringify(String(init?.body).includes("residential") ? streets : main), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await route("fromLat=14.2&fromLng=121.3&toLat=14.3&toLng=121.3");
+    expect(response.status).toBe(200);
+    const body = await response.json() as { distanceKm: number; straightKm: number; network: string };
+    expect(body.network).toBe("main");
+    expect(body.straightKm).toBeGreaterThan(10);
+    expect(body.distanceKm).toBeCloseTo(body.straightKm + 0.2, 1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("explains when road data cannot be downloaded", async () => {
+    as(owner);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("error", { status: 500 })));
+    const response = await route("fromLat=13.501&fromLng=122.0&toLat=13.5&toLng=122.002");
+    expect(response.status).toBe(502);
+    expect((await response.json() as { error: string }).error).toMatch(/Road data/);
   });
 
   it("refuses long trips, missing coordinates, and signed-out requests", async () => {
-    vi.stubEnv("DATABASE_URL", "postgres://in-memory/test");
     as(owner);
-    const far = await route("fromLat=14.6&fromLng=121.0&toLat=15.03&toLng=120.69");
+    const far = await route("fromLat=14.2&fromLng=121.0&toLat=15.03&toLng=120.69");
     expect(far.status).toBe(422);
     expect((await route("fromLat=14.6&fromLng=121.0")).status).toBe(400);
     h.session = null;

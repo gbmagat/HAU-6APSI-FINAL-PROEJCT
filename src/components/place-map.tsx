@@ -45,7 +45,6 @@ export default function PlaceMap({
   places,
   selectedId,
   draft,
-  target,
   routePath,
   userLocation,
   onSelect,
@@ -54,7 +53,6 @@ export default function PlaceMap({
   places: Place[];
   selectedId?: string;
   draft?: { latitude: number; longitude: number } | null;
-  target?: { latitude: number; longitude: number } | null;
   routePath?: [number, number][] | null;
   userLocation: MapLocation | null;
   onSelect: (id: string) => void;
@@ -66,7 +64,7 @@ export default function PlaceMap({
   const markersByIdRef = useRef(new Map<string, L.Marker>());
   const userMarkerRef = useRef<L.CircleMarker | null>(null);
   const draftMarkerRef = useRef<L.Marker | null>(null);
-  const routeRef = useRef<L.Polyline | null>(null);
+  const routeRef = useRef<L.FeatureGroup | null>(null);
   const fitRef = useRef<() => void>(() => undefined);
   const userLocationRef = useRef<MapLocation | null>(userLocation);
   const handlersRef = useRef({ onSelect, onMapClick });
@@ -195,24 +193,19 @@ export default function PlaceMap({
     else map.setView([draft.latitude, draft.longitude], Math.max(map.getZoom(), 15), { animate: false });
   }, [draft]);
 
-  // The road route when one has been found; otherwise a dashed straight line to the place in focus.
-  const targetLat = target?.latitude;
-  const targetLng = target?.longitude;
+  // The shortest road route along the streets, drawn over a light casing so it reads on any road colour.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     routeRef.current?.remove();
     routeRef.current = null;
-    if (routePath?.length) {
-      routeRef.current = L.polyline(routePath, { color: "#315641", weight: 5, opacity: 0.85, interactive: false }).addTo(map);
-      map.fitBounds(routeRef.current.getBounds(), { padding: [48, 48], maxZoom: 17, animate: false });
-      return;
-    }
-    if (!userLocation || targetLat === undefined || targetLng === undefined) return;
-    routeRef.current = L.polyline([[userLocation.lat, userLocation.lng], [targetLat, targetLng]], {
-      color: "#1e3054", weight: 2.5, opacity: 0.7, dashArray: "6 8", interactive: false,
-    }).addTo(map);
-  }, [userLocation, targetLat, targetLng, routePath]);
+    if (!routePath?.length) return;
+    routeRef.current = L.featureGroup([
+      L.polyline(routePath, { color: "#ffffff", weight: 9, opacity: 0.9, interactive: false }),
+      L.polyline(routePath, { color: "#315641", weight: 5, opacity: 0.95, interactive: false }),
+    ]).addTo(map);
+    map.fitBounds(routeRef.current.getBounds(), { padding: [48, 48], maxZoom: 17, animate: false });
+  }, [routePath]);
 
   // Your location: a navy dot with a ring and a text label, never a place pin.
   useEffect(() => {

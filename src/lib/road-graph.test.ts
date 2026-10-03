@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { distanceKm } from "@/lib/geo";
-import { buildRoadGraph, nearestNode, routeBetween, type OverpassElement } from "@/lib/road-graph";
+import { buildRoadGraph as buildFromRoads, mergeRoadData, nearestNode, roadDataFrom, routeBetween, type OverpassElement } from "@/lib/road-graph";
+
+const buildRoadGraph = (elements: OverpassElement[], options?: { respectOneway?: boolean }) => buildFromRoads(roadDataFrom(elements), options);
 
 // A small street grid, about 110 m between points:
 //   1 ── 2 ── 3
@@ -42,5 +44,23 @@ describe("road graph", () => {
   it("includes the short walks from the pin to the road and from the road to the place", () => {
     const route = routeBetween(buildRoadGraph(grid), { latitude: 14.0015, longitude: 121.0 }, { latitude: 14.001, longitude: 121.001 });
     expect(route!.distanceKm).toBeGreaterThan(distanceKm({ latitude: 14.001, longitude: 121.0 }, { latitude: 14.001, longitude: 121.001 }));
+  });
+
+  it("never snaps to a stretch of road that is not connected to the rest", () => {
+    // A short driveway right next to the pin, joined to nothing.
+    const driveway: OverpassElement[] = [
+      node(90, 14.0021, 121.0021), node(91, 14.0022, 121.0022),
+      { type: "way", id: 90, nodes: [90, 91], tags: { highway: "service" } },
+    ];
+    const graph = buildRoadGraph([...grid, ...driveway]);
+    expect(nearestNode(graph, { latitude: 14.0021, longitude: 121.0021 })).toBe(3);
+    expect(routeBetween(graph, { latitude: 14.0021, longitude: 121.0021 }, { latitude: 14.0, longitude: 121.0 })).not.toBeNull();
+  });
+
+  it("merges overlapping downloads without doubling roads", () => {
+    const merged = mergeRoadData([roadDataFrom(grid), roadDataFrom(grid.slice(0, 7))]);
+    expect(merged.ways.size).toBe(4);
+    expect(merged.nodes.size).toBe(6);
+    expect(buildFromRoads(merged).edges.get(6)?.map((edge) => edge.to)).toEqual([5]);
   });
 });

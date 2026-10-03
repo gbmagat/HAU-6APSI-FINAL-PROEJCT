@@ -173,11 +173,6 @@
   border-radius: var(--radius-sm);
 }
 
-.map-pin-action {
-  justify-self: start;
-  padding: 0;
-}
-
 @media (max-width: 560px) {
   .preview-banner {
     padding-inline: 12px;
@@ -1017,4 +1012,33 @@
   gap: 6px 18px;
   color: var(--color-muted);
   font-size: 12px;
+}
+
+/* While the road route loads, a quiet note on the map itself. */
+.map-route__status {
+  color: var(--color-muted);
+}
+
+.map-canvas .map-route-chip {
+  position: absolute;
+  z-index: 500;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 2px 10px rgb(30 48 84 / 0.16);
+  color: var(--color-navy);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.map-search-results__credit .text-button {
+  min-height: 24px;
+  padding: 0;
+  font-size: inherit;
 }

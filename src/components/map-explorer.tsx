@@ -4,7 +4,7 @@ import { Check, ChevronDown, ChevronUp, LocateFixed, MapPin, Plus, Rows3, Search
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import { usePassport } from "@/components/passport-provider";
 import type { MapLocation } from "@/components/place-map";
@@ -17,13 +17,16 @@ import { matchesPlaceQuery, placeLocation } from "@/lib/places";
 
 type FilterValue = "all" | VisitStatus;
 
-type RouteResult = { distanceKm: number; straightKm: number; path: [number, number][]; visited: number; roadPoints: number };
+type RouteResult = {
+  distanceKm: number;
+  straightKm: number;
+  path: [number, number][];
+  visited: number;
+  roadPoints: number;
+  network: "all" | "main";
+};
 
-type RouteState =
-  | { status: "idle" }
-  | { status: "loading"; key: string }
-  | ({ status: "done"; key: string } & RouteResult)
-  | { status: "error"; key: string; message: string };
+type RouteOutcome = ({ key: string } & RouteResult) | { key: string; error: string; retry: boolean };
 
 type SearchState =
   | { status: "idle" }
@@ -59,7 +62,8 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
   const [draftCategory, setDraftCategory] = useState<PlaceCategory>("District");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [route, setRoute] = useState<RouteState>({ status: "idle" });
+  const [routeOutcome, setRouteOutcome] = useState<RouteOutcome | null>(null);
+  const [routeAttempt, setRouteAttempt] = useState(0);
 
   const origin = userLocation ? { latitude: userLocation.lat, longitude: userLocation.lng } : null;
   const filteredPlaces = sortByDistance(places.filter((place) =>
@@ -69,40 +73,71 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
   const selectedPlace = draft ? undefined : filteredPlaces.find((place) => place.id === selectedId) ?? filteredPlaces[0];
   const trimmedQuery = query.trim();
   const target = draft ?? selectedPlace ?? null;
-  // A route belongs to one pin and one place; picking another place or moving the pin sets it aside.
-  const routeKey = origin && target ? `${origin.latitude},${origin.longitude}>${target.latitude},${target.longitude}` : "";
-  const activeRoute = route.status !== "idle" && route.key === routeKey ? route : null;
+  // A route belongs to one pin and one place; picking another place or moving the pin finds a new one.
+  const routeKey = origin && target
+    ? [origin.latitude, origin.longitude, target.latitude, target.longitude].map((value) => value.toFixed(5)).join(",")
+    : "";
+  const routeResult = routeOutcome?.key === routeKey ? routeOutcome : null;
+  const routeLoading = Boolean(routeKey) && !routeResult;
+  const roadRoute = routeResult && !("error" in routeResult) ? routeResult : null;
 
-  async function findRoute() {
-    if (!origin || !target || activeRoute?.status === "loading") return;
-    const key = routeKey;
-    setRoute({ status: "loading", key });
-    const query = new URLSearchParams({
-      fromLat: origin.latitude.toFixed(5), fromLng: origin.longitude.toFixed(5),
-      toLat: target.latitude.toFixed(5), toLng: target.longitude.toFixed(5),
-    });
-    try {
-      const response = await fetch(`/api/route?${query}`, { credentials: "same-origin" });
-      const data = await response.json().catch(() => null) as (RouteResult & { error?: string }) | null;
-      if (!response.ok || !data?.path) setRoute({ status: "error", key, message: data?.error || "The route could not be found." });
-      else setRoute({ status: "done", key, ...data });
-    } catch {
-      setRoute({ status: "error", key, message: "Road data is unavailable right now." });
-    }
+  // With a pin and a place in focus, find the shortest road route between them right away.
+  useEffect(() => {
+    if (!routeKey) return;
+    const [fromLat, fromLng, toLat, toLng] = routeKey.split(",");
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/route?${new URLSearchParams({ fromLat, fromLng, toLat, toLng })}`, {
+          credentials: "same-origin",
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => null) as (RouteResult & { error?: string }) | null;
+        if (!response.ok || !data?.path) {
+          setRouteOutcome({ key: routeKey, error: data?.error || "The route could not be found.", retry: response.status !== 422 });
+        } else {
+          setRouteOutcome({ key: routeKey, ...data });
+        }
+      } catch {
+        if (!controller.signal.aborted) setRouteOutcome({ key: routeKey, error: "Road data is unavailable right now.", retry: true });
+      }
+    }, 300);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [routeKey, routeAttempt]);
+
+  function togglePinMode() {
+    setPinMode(!pinMode);
+    setLocationMessage(pinMode ? "" : "Click the map where you are to pin your location.");
+  }
+
+  function retryRoute() {
+    setRouteOutcome(null);
+    setRouteAttempt((attempt) => attempt + 1);
   }
 
   const routePanel = target && (
-    <div className="map-route">
-      {activeRoute?.status === "done" && (
-        <p><strong>{formatDistance(activeRoute.distanceKm)} by road</strong> · {formatDistance(activeRoute.straightKm)} in a straight line<small>Shortest path found with Dijkstra&apos;s algorithm across {activeRoute.roadPoints.toLocaleString("en-US")} road points.</small></p>
+    <div className="map-route" aria-live="polite">
+      {roadRoute && (
+        <p>
+          <span><strong>{formatDistance(roadRoute.distanceKm)} by road</strong> · {formatDistance(roadRoute.straightKm)} straight</span>
+          <small>
+            Shortest route by Dijkstra&apos;s algorithm over {roadRoute.roadPoints.toLocaleString("en-US")} road points
+            {roadRoute.network === "main" ? ", using main roads between the two ends." : "."}
+          </small>
+        </p>
       )}
-      {activeRoute?.status === "error" && <p className="field-error">{activeRoute.message}</p>}
+      {routeLoading && <p className="map-route__status">Finding the shortest road route…</p>}
+      {routeResult && "error" in routeResult && <p className="field-error">{routeResult.error}</p>}
       <div className="map-route__actions">
-        {origin ? (
-          <button type="button" className="text-button" onClick={() => void findRoute()} disabled={activeRoute?.status === "loading"}>
-            {activeRoute?.status === "loading" ? "Finding the shortest route…" : "Shortest route"}
-          </button>
-        ) : <span>Pin your location for the shortest route</span>}
+        <button type="button" className="text-button" aria-pressed={pinMode} onClick={togglePinMode}>
+          {pinMode ? "Cancel pinning" : origin ? "Move your pin" : "Pin your location"}
+        </button>
+        {routeResult && "error" in routeResult && routeResult.retry && (
+          <button type="button" className="text-button" onClick={retryRoute}>Try again</button>
+        )}
         <a className="text-button" href={`https://www.google.com/maps/dir/?api=1&destination=${target.latitude},${target.longitude}`} target="_blank" rel="noopener noreferrer">Directions</a>
       </div>
     </div>
@@ -258,8 +293,7 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
             places={filteredPlaces}
             selectedId={selectedPlace?.id}
             draft={draft}
-            target={target}
-            routePath={activeRoute?.status === "done" ? activeRoute.path : null}
+            routePath={roadRoute?.path ?? null}
             userLocation={userLocation}
             onSelect={selectPlace}
             onMapClick={handleMapClick}
@@ -268,6 +302,7 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
           <button type="button" className="map-locate-control" onClick={locateUser} aria-label="Locate me">
             <LocateFixed size={22} aria-hidden="true" />
           </button>
+          {routeLoading && <p className="map-route-chip" aria-hidden="true">Finding the shortest road route…</p>}
         </div>
 
         <aside className={sheetCollapsed ? "map-results is-collapsed" : "map-results"} aria-label="Place results">
@@ -329,7 +364,6 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
                 </Link>
               </div>
               {routePanel}
-              <button type="button" className="text-button map-pin-action" aria-pressed={pinMode} onClick={() => { setPinMode((current) => !current); setLocationMessage(pinMode ? "" : "Click the map where you are to pin your location."); }}>{pinMode ? "Cancel pinning" : "Pin your location"}</button>
             </article>
           )}
 
@@ -353,7 +387,10 @@ export function MapExplorer({ places, locationEnabled }: { places: Place[]; loca
                   ))}
                 </ul>
               )}
-              <p className="map-search-results__credit">{origin ? "Nearest to your pin first · " : "Pin your location to sort by distance · "}Search by OpenStreetMap</p>
+              <p className="map-search-results__credit">
+                {origin ? "Nearest to your pin first · " : <><button type="button" className="text-button" aria-pressed={pinMode} onClick={togglePinMode}>{pinMode ? "Cancel pinning" : "Pin your location"}</button> to sort by distance · </>}
+                Search by OpenStreetMap
+              </p>
             </section>
           )}
 
