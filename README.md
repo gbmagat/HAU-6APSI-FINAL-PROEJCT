@@ -16,7 +16,7 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 - **Local or international.** The wishlist filters saved places by whether they are in the Philippines or abroad.
 - **Plan reminders by email.** Plan a visit on a date, with an optional time and note, and choose a reminder: the day before at 6 PM, on the day at 8 AM, or a week before at 9 AM (Philippine time). The server checks every two minutes and emails both members once; each member can turn these emails off in Profile. Upcoming plans lead the wishlist.
 - **Log an experience** in four steps: place and date, story, up to six photos (each with its own description), and a private rating with a short reflection. Photos are stored privately on the server and shown only to the two members, as a gallery that opens into a full-size viewer.
-- **Blind reviews.** Your partner's review is withheld by the server query until both reviews exist, then the shared score appears.
+- **Blind reviews.** Your partner's review is withheld by the server query until both reviews exist, then the shared score appears. If one of you logs a visit and the other has not reviewed it 15 minutes later, the other gets an email that their review is waiting; it never mentions the hidden rating or reflection. Each member can turn these emails off in Profile.
 - **Feed** with filters for photos and pending reviews, plus reactions and private comments.
 - **Place pages, wishlist, archive, and profile** with display names and preferences.
 
@@ -51,10 +51,10 @@ Copy `.env.example` to `.env.local`.
 | `NEXT_PUBLIC_PLACE_PROVIDER` | Placeholder for the planned map provider (`openstreetmap`). Not used yet. |
 | `NEXT_PUBLIC_PLACE_API_KEY` | Placeholder for that provider. Not used yet. |
 | `PHOTO_DIR` | Server-only folder for uploaded photos, outside `public/`. Defaults to `./storage/photos`. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Mail server for plan reminders, for example Gmail (`smtp.gmail.com`, port 587, with an app password). Port 465 uses TLS from the start; set `SMTP_SECURE` to override. Without `SMTP_HOST`, emails are saved as `.eml` files in `./storage/outbox` instead of being sent. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Mail server for plan and review reminders, for example Gmail (`smtp.gmail.com`, port 587, with an app password). Port 465 uses TLS from the start; set `SMTP_SECURE` to override. Without `SMTP_HOST`, emails are saved as `.eml` files in `./storage/outbox` instead of being sent. |
 | `MAIL_FROM` | Sender shown on reminder emails. Defaults to `Our Places <SMTP_USER>`. |
 | `APP_URL` | The site's public address, used for the link in reminder emails, for example `https://ourplaces.example.com`. |
-| `PLAN_REMINDERS` | Set to `off` to stop this server from sending reminders. |
+| `PLAN_REMINDERS` | Set to `off` to stop this server from sending any reminder emails. |
 | `ROAD_CACHE_DIR` | Server-only folder for saved OpenStreetMap road tiles used by routes. Defaults to `./storage/roads`; safe to delete. |
 
 The app runs in one of three modes:
@@ -83,6 +83,7 @@ The app runs in one of three modes:
 5. A database created from an older `db/schema.sql` needs the files in [db/migrations](db/migrations) applied in order. They are safe to run more than once.
    ```bash
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001-plan-reminders.sql
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002-review-reminders.sql
    ```
 
 See [db/README.md](db/README.md) for server and hosting notes. The `supabase/` folder is an earlier design kept for history; do not apply it.
@@ -134,7 +135,7 @@ supabase/         Earlier Supabase design, not used
 
 ## Testing
 
-`npm run check` runs 123 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking plan reminder timing and one-time email delivery, Dijkstra's shortest paths, saved road tiles, distance ranking, blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload, ordering, retries, and delivery, post deletion, and sign-in lockout.
+`npm run check` runs 127 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking plan and review reminder timing and one-time email delivery, Dijkstra's shortest paths, saved road tiles, distance ranking, blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload, ordering, retries, and delivery, post deletion, and sign-in lockout.
 
 ## Screenshots
 
@@ -149,5 +150,5 @@ supabase/         Earlier Supabase design, not used
 - End-to-end testing ran the production build against PostgreSQL 18 through PGlite's network server with both accounts; the VPS's own PostgreSQL is still to be used.
 - Map tiles and place search use OpenStreetMap's public services, which suit light personal use. Searches pass through your server, but tiles are loaded by the browser and reveal which area you are viewing.
 - Each experience keeps up to six photos, and photos cannot yet be removed or reordered after publishing. Photos live on disk, so back up `PHOTO_DIR` together with the database.
-- Plan reminders are sent by email; review reminders are still only a saved preference. Reminders run inside the app server, so they go out only while it is running (a missed reminder is sent when it starts again, until the planned day passes).
+- Plan and review reminders are sent by email from inside the app server, so they go out only while it is running (a missed reminder is sent when it starts again, until the planned day passes).
 - Next: deploy to the VPS behind HTTPS with backups and a tested restore.

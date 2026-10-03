@@ -1,8 +1,8 @@
 import "server-only";
 
 import { getPool } from "@/lib/db";
+import { planReminderEmail } from "@/lib/emails";
 import { sendMail } from "@/lib/mailer";
-import { reminderEmail } from "@/lib/plans";
 import { todayInManila } from "@/lib/visit-form";
 
 type DuePlan = {
@@ -23,7 +23,7 @@ type Recipient = { email: string; display_name: string };
  * Email the members of every space whose plan reminder is due. Each plan is claimed by stamping
  * reminder_sent_at first, so two servers (or two runs) never send the same reminder twice.
  */
-export async function sendDueReminders(now = new Date()): Promise<{ plans: number; sent: number; failed: number }> {
+export async function sendPlanReminders(now = new Date()): Promise<{ plans: number; sent: number; failed: number }> {
   const pool = getPool();
   const today = todayInManila(now);
   const due = await pool.query<DuePlan>(
@@ -47,7 +47,7 @@ export async function sendDueReminders(now = new Date()): Promise<{ plans: numbe
     );
     let delivered = 0;
     for (const recipient of recipients.rows) {
-      const email = reminderEmail({
+      const email = planReminderEmail({
         memberName: recipient.display_name,
         place: plan,
         plan: { date: plan.planned_for, time: plan.planned_time ?? undefined, note: plan.plan_note || undefined },

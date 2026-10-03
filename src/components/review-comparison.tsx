@@ -1,4 +1,4 @@
-import { LockKeyhole, RotateCcw, Star } from "lucide-react";
+import { LockKeyhole, Star } from "lucide-react";
 
 import type { Review } from "@/lib/domain";
 import { combinedOverallScore } from "@/lib/rating";
@@ -72,8 +72,8 @@ export function ReviewComparison({ reviews }: { reviews: Review[] }) {
       </div>
 
       <p className="review-comparison__note">
-        <RotateCcw size={14} aria-hidden="true" />
-        The shared score recalculates if either member edits a revealed review.
+        <LockKeyhole size={14} aria-hidden="true" />
+        Both reviews are final, so this score stays as it is.
       </p>
     </section>
   );
