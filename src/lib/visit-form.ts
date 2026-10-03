@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-export function todayInManila() {
+export function todayInManila(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date());
+  }).format(now);
 }
 
 // Photos per experience; they upload one at a time after the experience is saved.

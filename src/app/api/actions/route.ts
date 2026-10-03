@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { isSameOriginRequest } from "@/lib/origin";
 import { deletePhotoFiles } from "@/lib/photo-storage";
+import { planInputSchema, reminderTime } from "@/lib/plans";
 import { getCurrentSession } from "@/lib/session";
 
 const placeId = z.string().trim().min(1).max(80);
@@ -12,11 +13,13 @@ const postId = z.uuid();
 const settings = z.strictObject({
   reviewReminders: z.boolean().optional(),
   locationEnabled: z.boolean().optional(),
+  planReminders: z.boolean().optional(),
 }).refine((value) => Object.keys(value).length > 0);
 
 const actionSchema = z.discriminatedUnion("action", [
   z.strictObject({ action: z.literal("toggleFavorite"), placeId }),
   z.strictObject({ action: z.literal("setPlaceStatus"), placeId, status: z.enum(["want-to-visit", "planned", "visited"]) }),
+  z.strictObject({ action: z.literal("savePlan"), placeId, plan: planInputSchema }),
   z.strictObject({ action: z.literal("addComment"), postId, body: z.string().trim().min(1).max(240) }),
   z.strictObject({ action: z.literal("toggleReaction"), postId }),
   z.strictObject({ action: z.literal("saveMemberName"), name: z.string().trim().min(1).max(80) }),
@@ -93,13 +96,38 @@ export async function POST(request: NextRequest) {
         break;
       }
       case "setPlaceStatus": {
+        // Leaving "planned" drops the plan and its reminder.
         const result = await getPool().query(
           `update places p set status = $4,
-                  planned_for = case when $4 = 'planned' then planned_for else null end
+                  planned_for = case when $4 = 'planned' then planned_for end,
+                  planned_time = case when $4 = 'planned' then planned_time end,
+                  plan_note = case when $4 = 'planned' then plan_note else '' end,
+                  plan_reminder = case when $4 = 'planned' then plan_reminder else 'none' end,
+                  remind_at = case when $4 = 'planned' then remind_at end,
+                  reminder_sent_at = case when $4 = 'planned' then reminder_sent_at end
             where p.space_id = $1 and p.id = $3
               and exists (select 1 from space_members m where m.space_id = $1 and m.user_id = $2)
           returning p.id`,
           [spaceId, userId, action.placeId, action.status],
+        );
+        if (!result.rowCount) throw new ActionError("This place was not found.", 404);
+        break;
+      }
+      case "savePlan": {
+        const { date, time, note, reminder } = action.plan;
+        const remindAt = reminderTime(date, time || undefined, reminder);
+        // Saving the same date, time, and reminder again keeps a reminder that was already sent from going out twice.
+        const result = await getPool().query(
+          `update places p set status = 'planned', planned_for = $4::date, planned_time = $5::time,
+                  plan_note = $6, plan_reminder = $7, remind_at = $8::timestamptz,
+                  reminder_sent_at = case
+                    when p.planned_for is not distinct from $4::date and p.planned_time is not distinct from $5::time
+                     and p.plan_reminder = $7 then p.reminder_sent_at
+                  end
+            where p.space_id = $1 and p.id = $3
+              and exists (select 1 from space_members m where m.space_id = $1 and m.user_id = $2)
+          returning p.id`,
+          [spaceId, userId, action.placeId, date, time || null, note, reminder, remindAt?.toISOString() ?? null],
         );
         if (!result.rowCount) throw new ActionError("This place was not found.", 404);
         break;
@@ -153,15 +181,16 @@ export async function POST(request: NextRequest) {
       }
       case "updateSettings": {
         const result = await getPool().query(
-          `insert into member_settings (space_id, user_id, review_reminders, location_enabled)
-           select $1, $2, coalesce($3, true), coalesce($4, false)
+          `insert into member_settings (space_id, user_id, review_reminders, location_enabled, plan_reminders)
+           select $1, $2, coalesce($3, true), coalesce($4, false), coalesce($5, true)
              from space_members m where m.space_id = $1 and m.user_id = $2
            on conflict (user_id) do update set
              review_reminders = coalesce($3, member_settings.review_reminders),
-             location_enabled = coalesce($4, member_settings.location_enabled)
+             location_enabled = coalesce($4, member_settings.location_enabled),
+             plan_reminders = coalesce($5, member_settings.plan_reminders)
            where member_settings.space_id = $1
            returning user_id`,
-          [spaceId, userId, action.settings.reviewReminders ?? null, action.settings.locationEnabled ?? null],
+          [spaceId, userId, action.settings.reviewReminders ?? null, action.settings.locationEnabled ?? null, action.settings.planReminders ?? null],
         );
         if (!result.rowCount) throw new ActionError("Your settings could not be found.", 404);
         break;

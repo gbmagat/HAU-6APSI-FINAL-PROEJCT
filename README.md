@@ -14,6 +14,7 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 - **Shortest route.** Once your location is pinned, picking a place draws the shortest road route to it. The server builds a graph from OpenStreetMap roads (road points as nodes, segments weighted by length, one-way streets in one direction) and runs Dijkstra's algorithm with a binary-heap priority queue. Trips up to 10 km use every road; trips up to 40 km use main roads between the two ends. Roads are downloaded once per map tile and saved, so later routes in the same area take a fraction of a second. Longer trips link to directions instead.
 - **Place details.** A place page adds its website, opening hours, phone, and a Wikipedia summary when OpenStreetMap has them, plus a link to its reviews on Google Maps.
 - **Local or international.** The wishlist filters saved places by whether they are in the Philippines or abroad.
+- **Plan reminders by email.** Plan a visit on a date, with an optional time and note, and choose a reminder: the day before at 6 PM, on the day at 8 AM, or a week before at 9 AM (Philippine time). The server checks every two minutes and emails both members once; each member can turn these emails off in Profile. Upcoming plans lead the wishlist.
 - **Log an experience** in four steps: place and date, story, up to six photos (each with its own description), and a private rating with a short reflection. Photos are stored privately on the server and shown only to the two members, as a gallery that opens into a full-size viewer.
 - **Blind reviews.** Your partner's review is withheld by the server query until both reviews exist, then the shared score appears.
 - **Feed** with filters for photos and pending reviews, plus reactions and private comments.
@@ -50,6 +51,10 @@ Copy `.env.example` to `.env.local`.
 | `NEXT_PUBLIC_PLACE_PROVIDER` | Placeholder for the planned map provider (`openstreetmap`). Not used yet. |
 | `NEXT_PUBLIC_PLACE_API_KEY` | Placeholder for that provider. Not used yet. |
 | `PHOTO_DIR` | Server-only folder for uploaded photos, outside `public/`. Defaults to `./storage/photos`. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Mail server for plan reminders, for example Gmail (`smtp.gmail.com`, port 587, with an app password). Port 465 uses TLS from the start; set `SMTP_SECURE` to override. Without `SMTP_HOST`, emails are saved as `.eml` files in `./storage/outbox` instead of being sent. |
+| `MAIL_FROM` | Sender shown on reminder emails. Defaults to `Our Places <SMTP_USER>`. |
+| `APP_URL` | The site's public address, used for the link in reminder emails, for example `https://ourplaces.example.com`. |
+| `PLAN_REMINDERS` | Set to `off` to stop this server from sending reminders. |
 | `ROAD_CACHE_DIR` | Server-only folder for saved OpenStreetMap road tiles used by routes. Defaults to `./storage/roads`; safe to delete. |
 
 The app runs in one of three modes:
@@ -75,6 +80,11 @@ The app runs in one of three modes:
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/sample-places.sql
    ```
 
+5. A database created from an older `db/schema.sql` needs the files in [db/migrations](db/migrations) applied in order. They are safe to run more than once.
+   ```bash
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001-plan-reminders.sql
+   ```
+
 See [db/README.md](db/README.md) for server and hosting notes. The `supabase/` folder is an earlier design kept for history; do not apply it.
 
 ## Commands
@@ -98,7 +108,7 @@ Sign in, find a place on the map, and log an experience with your own review. Yo
 | `GET /api/state` | Load the shared space, including only the reviews the signed-in member may see |
 | `POST /api/visits` | Publish an experience and its first review; safe to retry with the same draft key |
 | `POST /api/visits/{id}/review` | Submit the second member's review |
-| `POST /api/actions` | Favorites, place status, comments, reactions, display name, preferences, and deleting your own post |
+| `POST /api/actions` | Favorites, place status, visit plans with email reminders, comments, reactions, display name, preferences, and deleting your own post |
 | `GET /api/places/search?q=&lat=&lng=` | Search OpenStreetMap through the server (members only, one request per second, cached); a location biases results toward it, sending only a rounded area |
 | `GET /api/places/about?name=&lat=&lng=` | Public details for a place: website, hours, phone, and a Wikipedia summary |
 | `GET /api/route?fromLat=&fromLng=&toLat=&toLng=` | Shortest road route up to 40 km, found with Dijkstra's algorithm over OpenStreetMap roads |
@@ -124,7 +134,7 @@ supabase/         Earlier Supabase design, not used
 
 ## Testing
 
-`npm run check` runs 107 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking Dijkstra's shortest paths, saved road tiles, distance ranking, blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload, ordering, retries, and delivery, post deletion, and sign-in lockout.
+`npm run check` runs 123 tests. They cover the rating and review-visibility rules, place and feed logic, form validation, password hashing, and the database schema. They also run the real API route handlers against an in-memory PostgreSQL (PGlite), checking plan reminder timing and one-time email delivery, Dijkstra's shortest paths, saved road tiles, distance ranking, blind reviews, retry safety, cross-site and signed-out rejection, proxy sign-in, per-member favorites, saving places, OpenStreetMap search, private photo upload, ordering, retries, and delivery, post deletion, and sign-in lockout.
 
 ## Screenshots
 
@@ -139,5 +149,5 @@ supabase/         Earlier Supabase design, not used
 - End-to-end testing ran the production build against PostgreSQL 18 through PGlite's network server with both accounts; the VPS's own PostgreSQL is still to be used.
 - Map tiles and place search use OpenStreetMap's public services, which suit light personal use. Searches pass through your server, but tiles are loaded by the browser and reveal which area you are viewing.
 - Each experience keeps up to six photos, and photos cannot yet be removed or reordered after publishing. Photos live on disk, so back up `PHOTO_DIR` together with the database.
-- Review reminders are saved as a preference but no notifications are sent.
+- Plan reminders are sent by email; review reminders are still only a saved preference. Reminders run inside the app server, so they go out only while it is running (a missed reminder is sent when it starts again, until the planned day passes).
 - Next: deploy to the VPS behind HTTPS with backups and a tested restore.

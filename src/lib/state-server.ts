@@ -6,6 +6,7 @@ import type {
   Member,
   Place,
   PlaceCategory,
+  PlanReminder,
   PostPhoto,
   ReactionSummary,
   ReactionType,
@@ -31,6 +32,10 @@ type PlaceRow = {
   opening_note: string | null;
   status: VisitStatus;
   planned_for: string | null;
+  planned_time: string | null;
+  plan_note: string;
+  plan_reminder: PlanReminder;
+  reminder_sent: boolean;
   favorite: boolean;
   visit_count: number;
 };
@@ -64,14 +69,14 @@ type CommentRow = {
 };
 type ReactionRow = { visit_id: string; author_id: string; type: ReactionType };
 type PhotoRow = { id: string; visit_id: string; alt_text: string };
-type SettingsRow = { review_reminders: boolean; location_enabled: boolean };
+type SettingsRow = { review_reminders: boolean; location_enabled: boolean; plan_reminders: boolean };
 
 export type ServerState = {
   places: Place[];
   posts: VisitPost[];
   members: Member[];
   currentMemberId: string;
-  settings: { reviewReminders: boolean; locationEnabled: boolean };
+  settings: { reviewReminders: boolean; locationEnabled: boolean; planReminders: boolean };
 };
 
 function initialsFor(name: string) {
@@ -109,6 +114,8 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
       `select p.id, p.slug, p.name, p.category, p.address, p.city, p.country,
               p.latitude, p.longitude, p.initials, p.short_description,
               p.opening_note, p.status, to_char(p.planned_for, 'YYYY-MM-DD') as planned_for,
+              to_char(p.planned_time, 'HH24:MI') as planned_time, p.plan_note, p.plan_reminder,
+              p.reminder_sent_at is not null as reminder_sent,
               exists (select 1 from member_favorites f
                        where f.space_id = p.space_id and f.place_id = p.id and f.user_id = $2) as favorite,
               (select count(*)::integer from visits v
@@ -152,7 +159,7 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
       [spaceId],
     ),
     pool.query<SettingsRow>(
-      `select review_reminders, location_enabled from member_settings
+      `select review_reminders, location_enabled, plan_reminders from member_settings
         where space_id = $1 and user_id = $2`,
       [spaceId, userId],
     ),
@@ -190,7 +197,13 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
       combinedScore: latest?.combined_score == null ? null : Number(latest.combined_score),
       reviewProgress: reviewProgress(latest),
       visitCount: row.visit_count,
-      nextVisitDate: row.planned_for ?? undefined,
+      plan: row.planned_for ? {
+        date: row.planned_for,
+        time: row.planned_time ?? undefined,
+        note: row.plan_note || undefined,
+        reminder: row.plan_reminder,
+        reminderSent: row.reminder_sent,
+      } : undefined,
     };
   });
   const placeById = new Map(places.map((place) => [place.id, place]));
@@ -270,6 +283,7 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
     settings: {
       reviewReminders: settingsResult.rows[0]?.review_reminders ?? true,
       locationEnabled: settingsResult.rows[0]?.location_enabled ?? false,
+      planReminders: settingsResult.rows[0]?.plan_reminders ?? true,
     },
   };
 }

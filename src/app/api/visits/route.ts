@@ -58,7 +58,13 @@ export async function POST(request: NextRequest) {
          values ($1, $2, $3, $4, $5, $6)`,
         [spaceId, id, userId, input.rating, input.reflection, input.revisit],
       );
-      await client.query("update places set status = 'visited' where space_id = $1 and id = $2", [spaceId, input.placeId]);
+      // The visit happened, so any plan for this place and its reminder are done.
+      await client.query(
+        `update places set status = 'visited', planned_for = null, planned_time = null, plan_note = '',
+                plan_reminder = 'none', remind_at = null, reminder_sent_at = null
+          where space_id = $1 and id = $2`,
+        [spaceId, input.placeId],
+      );
       await client.query("commit");
       return NextResponse.json({ id }, { status: 201, headers: { "Cache-Control": "private, no-store" } });
     } catch (error) {

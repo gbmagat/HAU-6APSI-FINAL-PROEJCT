@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const h = vi.hoisted(() => ({
   db: undefined as unknown as PGlite,
   session: null as null | { userId: string; spaceId: string; email: string; displayName: string; role: "owner" | "partner" },
+  sendMail: vi.fn(async (mail: { to: string; subject: string; text: string; html: string }) => { void mail; }),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -19,6 +20,7 @@ vi.mock("@/lib/db", () => {
   };
   return { getPool: () => ({ query: run, connect: async () => ({ query: run, release: () => undefined }) }) };
 });
+vi.mock("@/lib/mailer", () => ({ sendMail: h.sendMail }));
 vi.mock("@/lib/session", () => ({
   getCurrentSession: async () => h.session,
   createSession: async () => undefined,
@@ -35,7 +37,10 @@ import { POST as signIn } from "@/app/api/auth/login/route";
 import { POST as submitReview } from "@/app/api/visits/[id]/review/route";
 import { POST as publishVisit } from "@/app/api/visits/route";
 import { hashPassword } from "@/lib/password";
+import { sendDueReminders } from "@/lib/plan-reminders";
+import { reminderTime } from "@/lib/plans";
 import { loadServerState } from "@/lib/state-server";
+import { todayInManila } from "@/lib/visit-form";
 
 const owner = "00000000-0000-4000-8000-000000000001";
 const partner = "00000000-0000-4000-8000-000000000002";
@@ -162,11 +167,11 @@ describe("shared actions", () => {
     expect((await loadServerState(space, partner)).places[0].favorite).toBe(false);
   });
 
-  it("clears the planned date when a place stops being planned", async () => {
+  it("clears the plan when a place stops being planned", async () => {
     as(owner);
-    expect((await loadServerState(space, owner)).places[0].nextVisitDate).toBe("2026-10-01");
+    expect((await loadServerState(space, owner)).places[0].plan).toEqual({ date: "2026-10-01", reminder: "none", reminderSent: false });
     await runAction(request("/api/actions", { action: "setPlaceStatus", placeId: "place-1", status: "want-to-visit" }));
-    expect((await loadServerState(space, owner)).places[0]).toMatchObject({ status: "want-to-visit", nextVisitDate: undefined });
+    expect((await loadServerState(space, owner)).places[0]).toMatchObject({ status: "want-to-visit", plan: undefined });
   });
 
   it("lets only the author delete a post, then resets the place once its last visit is gone", async () => {
@@ -549,5 +554,91 @@ describe("shortest road route", () => {
     expect((await route("fromLat=14.6&fromLng=121.0")).status).toBe(400);
     h.session = null;
     expect((await route("fromLat=14.001&fromLng=121.0&toLat=14.0&toLng=121.002")).status).toBe(401);
+  });
+});
+
+describe("plan reminders by email", () => {
+  const daysAhead = (days: number) => {
+    const date = new Date(`${todayInManila()}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  };
+  const planDate = daysAhead(10);
+  const savePlan = (plan: Record<string, string>) =>
+    runAction(request("/api/actions", { action: "savePlan", placeId: "place-1", plan: { date: planDate, time: "15:00", note: "Window table", reminder: "day-before", ...plan } }));
+  const dueAt = (date = planDate) => new Date(reminderTime(date, "15:00", "day-before")!.getTime() + 60_000);
+
+  beforeEach(() => { h.sendMail.mockReset(); h.sendMail.mockResolvedValue(undefined); });
+
+  it("saves a plan for both members with its reminder time", async () => {
+    as(owner);
+    expect((await savePlan({})).status).toBe(200);
+    const partnerView = await loadServerState(space, partner);
+    expect(partnerView.places[0]).toMatchObject({
+      status: "planned",
+      plan: { date: planDate, time: "15:00", note: "Window table", reminder: "day-before", reminderSent: false },
+    });
+    const { rows } = await h.db.query<{ remind_at: Date }>("select remind_at from places where id = 'place-1'");
+    expect(new Date(rows[0].remind_at).toISOString()).toBe(reminderTime(planDate, "15:00", "day-before")!.toISOString());
+  });
+
+  it("refuses a plan in the past or from outside the space", async () => {
+    as(owner);
+    expect((await savePlan({ date: daysAhead(-1) })).status).toBe(400);
+    as(outsider, otherSpace);
+    expect((await savePlan({})).status).toBe(404);
+  });
+
+  it("emails both members once, only when the reminder is due", async () => {
+    as(owner);
+    await savePlan({});
+    expect(await sendDueReminders(new Date(dueAt().getTime() - 120_000))).toMatchObject({ plans: 0, sent: 0 });
+    expect(h.sendMail).not.toHaveBeenCalled();
+
+    expect(await sendDueReminders(dueAt())).toEqual({ plans: 1, sent: 2, failed: 0 });
+    expect(h.sendMail.mock.calls.map(([mail]) => mail.to).sort()).toEqual(["owner@example.test", "partner@example.test"]);
+    const [mail] = h.sendMail.mock.calls[0];
+    expect(mail.subject).toBe("Reminder: Luna Café tomorrow at 3:00 PM");
+    expect(mail.text).toContain("Note: Window table");
+
+    expect(await sendDueReminders(new Date(dueAt().getTime() + 600_000))).toMatchObject({ plans: 0, sent: 0 });
+    expect(h.sendMail).toHaveBeenCalledTimes(2);
+    expect((await loadServerState(space, owner)).places[0].plan?.reminderSent).toBe(true);
+  });
+
+  it("skips a member who turned plan reminders off, and tries again when sending fails", async () => {
+    as(partner);
+    expect((await runAction(request("/api/actions", { action: "updateSettings", settings: { planReminders: false } }))).status).toBe(200);
+    expect((await loadServerState(space, partner)).settings.planReminders).toBe(false);
+    as(owner);
+    await savePlan({});
+    h.sendMail.mockRejectedValueOnce(new Error("SMTP is down"));
+    expect(await sendDueReminders(dueAt())).toEqual({ plans: 1, sent: 0, failed: 1 });
+    expect(await sendDueReminders(new Date(dueAt().getTime() + 120_000))).toEqual({ plans: 1, sent: 1, failed: 0 });
+    expect(h.sendMail.mock.calls.map(([sent]) => sent.to)).toEqual(["owner@example.test", "owner@example.test"]);
+  });
+
+  it("does not resend after saving the same plan again, but does after moving the date", async () => {
+    as(owner);
+    await savePlan({});
+    await sendDueReminders(dueAt());
+    await savePlan({ note: "Window table, 2 people" });
+    expect((await loadServerState(space, owner)).places[0].plan?.reminderSent).toBe(true);
+    expect(await sendDueReminders(new Date(dueAt().getTime() + 120_000))).toMatchObject({ plans: 0 });
+
+    const moved = daysAhead(12);
+    await savePlan({ date: moved });
+    expect((await loadServerState(space, owner)).places[0].plan).toMatchObject({ date: moved, reminderSent: false });
+    expect(await sendDueReminders(dueAt(moved))).toMatchObject({ plans: 1, sent: 2 });
+  });
+
+  it("drops the plan and its reminder once the visit is logged, and never reminds without one", async () => {
+    as(owner);
+    await savePlan({});
+    await publishAsOwner();
+    expect((await loadServerState(space, owner)).places[0]).toMatchObject({ status: "visited", plan: undefined });
+    await savePlan({ reminder: "none" });
+    expect(await sendDueReminders(dueAt())).toMatchObject({ plans: 0, sent: 0 });
+    expect(h.sendMail).not.toHaveBeenCalled();
   });
 });

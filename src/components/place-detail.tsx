@@ -1,14 +1,15 @@
 "use client";
 
-import { CalendarPlus, ExternalLink, Heart, MapPin, Plus, Star } from "lucide-react";
+import { ExternalLink, Heart, MapPin, Plus, Star } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ReviewComparison } from "@/components/review-comparison";
 import { usePassport } from "@/components/passport-provider";
+import { PlanPanel } from "@/components/plan-panel";
 import { PlaceBadges } from "@/components/status-badge";
 import { formatOpeningHours, googleMapsSearchUrl, type PlaceAbout } from "@/lib/place-about";
-import { placeLocation, sharedScoreLabel, togglePlannedStatus } from "@/lib/places";
+import { placeLocation, sharedScoreLabel } from "@/lib/places";
 import { visibleReviews } from "@/lib/rating";
 
 export function PlaceDetail({ slug }: { slug: string }) {
@@ -47,11 +48,6 @@ export function PlaceDetail({ slug }: { slug: string }) {
     try { await passport.toggleFavorite(place.id); setMessage(""); } catch { const text = "We couldn’t save that favorite."; setMessage(text); window.alert(text); }
   }
 
-  async function togglePlanned() {
-    if (!place) return;
-    try { await passport.setPlaceStatus(place.id, togglePlannedStatus(place)); setMessage(""); } catch { const text = "We couldn’t save that visit plan."; setMessage(text); window.alert(text); }
-  }
-
   async function submitReviewForm(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!pendingPost || rating < 1 || reflection.trim().length < 8) {
@@ -79,7 +75,7 @@ export function PlaceDetail({ slug }: { slug: string }) {
 
           <section className="place-notes" aria-labelledby="place-notes-title"><h2 id="place-notes-title">Shared notes</h2>{visiblePosts.flatMap((post) => [<article key={`${post.id}-story`}>{post.photos?.[0] && <div className="note-photo" style={{ backgroundImage: `url(${post.photos[0].url})` }} role="img" aria-label={post.photos[0].alt ?? "Shared place photo"} />}<span className="avatar">{post.author.initials}</span><div><strong>{post.author.displayName} · {post.visitedOn}</strong><p>{post.story}</p></div></article>, ...visibleReviews(post.reviews, passport.currentMember.id).map((review) => <article key={review.id}><span className="avatar">{review.author.initials}</span><div><strong>{review.author.displayName}&apos;s review</strong><p>{review.body}</p></div></article>)])}{!visiblePosts.length && <p>No notes yet. Log the first experience above.</p>}</section>
         </div>
-        <aside className="place-detail-sidebar"><section><h2>Our place</h2><button type="button" className={place.favorite ? "detail-toggle is-active" : "detail-toggle"} aria-pressed={place.favorite} onClick={() => void toggleFavorite()}><Heart size={19} fill={place.favorite ? "currentColor" : "none"} aria-hidden="true" />{place.favorite ? "Favorite" : "Add favorite"}</button><button type="button" className={place.status === "planned" ? "detail-toggle is-active" : "detail-toggle"} aria-pressed={place.status === "planned"} onClick={() => void togglePlanned()}><CalendarPlus size={19} aria-hidden="true" />{place.status === "planned" ? "Planned" : "Plan a visit"}</button></section><section><h2>Details</h2><dl><div><dt>Location</dt><dd>{placeLocation(place)}</dd></div><div><dt>Category</dt><dd>{place.category}</dd></div><div><dt>Visits</dt><dd>{place.visitCount}</dd></div><div><dt>Shared score</dt><dd>{sharedScoreLabel(place)}</dd></div>{about.data.openingHours && <div><dt>Hours</dt><dd>{formatOpeningHours(about.data.openingHours)}</dd></div>}{about.data.phone && <div><dt>Phone</dt><dd><a href={`tel:${about.data.phone.replace(/[^\d+]/g, "")}`}>{about.data.phone}</a></dd></div>}</dl></section>{message && !pendingPost && <p className="form-status" role="status">{message}</p>}</aside>
+        <aside className="place-detail-sidebar"><section><h2>Our place</h2><button type="button" className={place.favorite ? "detail-toggle is-active" : "detail-toggle"} aria-pressed={place.favorite} onClick={() => void toggleFavorite()}><Heart size={19} fill={place.favorite ? "currentColor" : "none"} aria-hidden="true" />{place.favorite ? "Favorite" : "Add favorite"}</button><PlanPanel key={`${place.id}:${place.plan?.date ?? ""}`} place={place} /></section><section><h2>Details</h2><dl><div><dt>Location</dt><dd>{placeLocation(place)}</dd></div><div><dt>Category</dt><dd>{place.category}</dd></div><div><dt>Visits</dt><dd>{place.visitCount}</dd></div><div><dt>Shared score</dt><dd>{sharedScoreLabel(place)}</dd></div>{about.data.openingHours && <div><dt>Hours</dt><dd>{formatOpeningHours(about.data.openingHours)}</dd></div>}{about.data.phone && <div><dt>Phone</dt><dd><a href={`tel:${about.data.phone.replace(/[^\d+]/g, "")}`}>{about.data.phone}</a></dd></div>}</dl></section>{message && !pendingPost && <p className="form-status" role="status">{message}</p>}</aside>
       </section>
       {comparisonPost && <ReviewComparison reviews={comparisonPost.reviews} />}
     </>

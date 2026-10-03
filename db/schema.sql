@@ -61,11 +61,19 @@ create table places (
   status text not null default 'want-to-visit'
     check (status in ('want-to-visit', 'planned', 'visited')),
   planned_for date,
+  -- A planned visit: optional time and note, and when to email both members about it (Asia/Manila).
+  planned_time time,
+  plan_note text not null default '' check (char_length(plan_note) <= 200),
+  plan_reminder text not null default 'none'
+    check (plan_reminder in ('none', 'morning', 'day-before', 'week-before')),
+  remind_at timestamptz,
+  reminder_sent_at timestamptz,
   created_at timestamptz not null default now(),
   unique (space_id, id),
   unique (space_id, slug)
 );
 create index places_space_name_idx on places (space_id, name);
+create index places_due_reminder_idx on places (remind_at) where reminder_sent_at is null;
 
 -- Favorites belong to a member; the place's visit status is shared by the space.
 create table member_favorites (
@@ -173,6 +181,7 @@ create table member_settings (
   user_id uuid primary key,
   review_reminders boolean not null default true,
   location_enabled boolean not null default false,
+  plan_reminders boolean not null default true,
   foreign key (space_id, user_id) references space_members(space_id, user_id) on delete cascade
 );
 

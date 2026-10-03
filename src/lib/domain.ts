@@ -1,5 +1,18 @@
 export type VisitStatus = "want-to-visit" | "planned" | "visited";
 
+export const planReminders = ["morning", "day-before", "week-before", "none"] as const;
+
+export type PlanReminder = (typeof planReminders)[number];
+
+/** A planned visit; the date and optional time are in Philippine time. */
+export type PlacePlan = {
+  date: string;
+  time?: string;
+  note?: string;
+  reminder: PlanReminder;
+  reminderSent?: boolean;
+};
+
 export type ReviewProgress =
   | "not-started"
   | "your-review-needed"
@@ -25,7 +38,7 @@ export type Place = {
   combinedScore: number | null;
   reviewProgress: ReviewProgress;
   visitCount: number;
-  nextVisitDate?: string;
+  plan?: PlacePlan;
   initials: string;
   shortDescription: string;
   openingNote?: string;
