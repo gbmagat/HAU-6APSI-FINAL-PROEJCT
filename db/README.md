@@ -23,6 +23,10 @@ With no `DATABASE_URL`, development keeps the browser-only preview. Production l
 
 Set `PHOTO_DIR` to a private directory owned by the service account, for example `/var/lib/our-places/photos`, and never inside `public/`. Back it up with the database, since visits point at files there. The reverse proxy must accept uploads of at least 10 MB (for nginx, `client_max_body_size 10m;`).
 
+## Road tiles
+
+Routes save the OpenStreetMap roads they download in `ROAD_CACHE_DIR` (default `./storage/roads`), one file per map tile, refreshed after 30 days. The service account needs write access there. It is a cache: it does not need backups and can be deleted at any time.
+
 ## Before deployment
 
 - The exact subdomain and current VPS reverse-proxy configuration still need to be chosen and checked.

@@ -13,7 +13,7 @@ const STORAGE_KEY = /^[0-9a-f-]{36}\.(jpg|png|webp)$/;
 
 /** Private photos live outside public/; set PHOTO_DIR on the server (for example /var/lib/our-places/photos). */
 export function photoDirectory(): string {
-  return resolve(process.env.PHOTO_DIR || join(process.cwd(), "storage", "photos"));
+  return resolve(/*turbopackIgnore: true*/ process.env.PHOTO_DIR || join(process.cwd(), "storage", "photos"));
 }
 
 /** Trust the file's bytes, not its name or the browser's claimed type. */
@@ -32,7 +32,7 @@ export async function savePhotoFile(bytes: Uint8Array, type: PhotoType): Promise
   const key = `${randomUUID()}.${extensions[type]}`;
   const temporary = join(directory, `.${key}.partial`);
   await writeFile(temporary, bytes, { mode: 0o600 });
-  await rename(temporary, join(directory, key));
+  await rename(temporary, join(/*turbopackIgnore: true*/ directory, key));
   return key;
 }
 
