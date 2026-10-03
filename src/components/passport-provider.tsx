@@ -20,6 +20,7 @@ import type {
 } from "@/lib/domain";
 import { isSamePlace, newPlaceSchema, placeInitials, slugify, uniqueSlug, type NewPlaceInput } from "@/lib/place-input";
 import { withDerivedReviewState } from "@/lib/places";
+import type { PlanInput } from "@/lib/plans";
 
 const STORAGE_KEY = "our-places-passport-preview.v1";
 const STORAGE_EVENT = "our-places-passport-preview:changed";
@@ -27,6 +28,7 @@ const STORAGE_EVENT = "our-places-passport-preview:changed";
 type PreviewSettings = {
   reviewReminders: boolean;
   locationEnabled: boolean;
+  planReminders: boolean;
 };
 
 type NewVisitInput = {
@@ -66,6 +68,7 @@ type PassportContextValue = PreviewState & {
   setCurrentMember: (memberId: string) => void | Promise<void>;
   toggleFavorite: (placeId: string) => void | Promise<void>;
   setPlaceStatus: (placeId: string, status: VisitStatus) => void | Promise<void>;
+  savePlan: (placeId: string, plan: PlanInput) => void | Promise<void>;
   addComment: (postId: string, body: string) => void | Promise<void>;
   toggleReaction: (postId: string) => void | Promise<void>;
   saveMemberName: (memberId: string, name: string) => void | Promise<void>;
@@ -89,12 +92,12 @@ function seededState(): PreviewState {
     posts: clone(seedPosts),
     members: clone(seedMembers),
     currentMemberId: seedMembers[0]?.id ?? "member-gab",
-    settings: { reviewReminders: true, locationEnabled: false },
+    settings: { reviewReminders: true, locationEnabled: false, planReminders: true },
   };
 }
 
 function emptyState(): PreviewState {
-  return { places: [], posts: [], members: [], currentMemberId: "", settings: { reviewReminders: true, locationEnabled: false } };
+  return { places: [], posts: [], members: [], currentMemberId: "", settings: { reviewReminders: true, locationEnabled: false, planReminders: true } };
 }
 
 function initialsFor(name: string) {
@@ -128,6 +131,7 @@ function parsePreviewState(raw: string): PreviewState | null {
       settings: {
         reviewReminders: parsed.settings?.reviewReminders !== false,
         locationEnabled: parsed.settings?.locationEnabled === true,
+        planReminders: parsed.settings?.planReminders !== false,
       },
     };
   } catch {
@@ -302,7 +306,20 @@ export function PassportProvider({ children, serverMode }: { children: ReactNode
       if (serverMode) return runServerAction({ action: "setPlaceStatus", placeId, status });
       update((current) => ({
         ...current,
-        places: current.places.map((place) => place.id === placeId ? { ...place, status } : place),
+        places: current.places.map((place) => place.id === placeId
+          ? { ...place, status, plan: status === "planned" ? place.plan : undefined }
+          : place),
+      }));
+    },
+    savePlan(placeId, plan) {
+      if (serverMode) return runServerAction({ action: "savePlan", placeId, plan });
+      update((current) => ({
+        ...current,
+        places: current.places.map((place) => place.id !== placeId ? place : {
+          ...place,
+          status: "planned",
+          plan: { date: plan.date, time: plan.time || undefined, note: plan.note.trim() || undefined, reminder: plan.reminder, reminderSent: false },
+        }),
       }));
     },
     addComment(postId, body) {

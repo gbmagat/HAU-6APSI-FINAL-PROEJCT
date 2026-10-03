@@ -8,6 +8,7 @@ import { PlaceCard } from "@/components/place-card";
 import { PageHeading } from "@/components/page-heading";
 import { usePassport } from "@/components/passport-provider";
 import { filterByScope, type PlaceScope } from "@/lib/places";
+import { byUpcomingPlan } from "@/lib/plans";
 
 const scopes: { value: PlaceScope; label: string }[] = [
   { value: "all", label: "All" },
@@ -18,7 +19,8 @@ const scopes: { value: PlaceScope; label: string }[] = [
 export default function WishlistPage() {
   const { ready, places } = usePassport();
   const [scope, setScope] = useState<PlaceScope>("all");
-  const savedPlaces = filterByScope(places.filter((place) => place.favorite || place.status !== "visited"), scope);
+  // Upcoming plans lead, soonest first.
+  const savedPlaces = byUpcomingPlan(filterByScope(places.filter((place) => place.favorite || place.status !== "visited"), scope));
 
   return (
     <main className="page-shell wishlist-page">

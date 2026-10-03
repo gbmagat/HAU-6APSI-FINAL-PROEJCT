@@ -3,6 +3,7 @@
 import {
   Bell,
   Check,
+  Mail,
   MapPinOff,
   Pencil,
   RotateCcw,
@@ -34,7 +35,7 @@ export function ProfileSettings() {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
-  const [pendingSetting, setPendingSetting] = useState<"reviewReminders" | "locationEnabled" | null>(null);
+  const [pendingSetting, setPendingSetting] = useState<"reviewReminders" | "locationEnabled" | "planReminders" | null>(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -89,7 +90,7 @@ export function ProfileSettings() {
   }
 
   async function handleSettingChange(
-    setting: "reviewReminders" | "locationEnabled",
+    setting: "reviewReminders" | "locationEnabled" | "planReminders",
     value: boolean,
   ) {
     setPendingSetting(setting);
@@ -258,6 +259,24 @@ export function ProfileSettings() {
             >
               <span aria-hidden="true" />
               {settings.locationEnabled ? "On" : "Off"}
+            </button>
+          </article>
+          <article>
+            <Mail aria-hidden="true" />
+            <div>
+              <h3>Plan reminders</h3>
+              <p>Email me before a planned visit.</p>
+            </div>
+            <button
+              type="button"
+              className={settings.planReminders ? "switch is-on" : "switch"}
+              role="switch"
+              aria-checked={settings.planReminders}
+              disabled={pendingSetting === "planReminders"}
+              onClick={() => void handleSettingChange("planReminders", !settings.planReminders)}
+            >
+              <span aria-hidden="true" />
+              {settings.planReminders ? "On" : "Off"}
             </button>
           </article>
           <article>

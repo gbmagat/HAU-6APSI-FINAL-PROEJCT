@@ -23,6 +23,12 @@ With no `DATABASE_URL`, development keeps the browser-only preview. Production l
 
 Set `PHOTO_DIR` to a private directory owned by the service account, for example `/var/lib/our-places/photos`, and never inside `public/`. Back it up with the database, since visits point at files there. The reverse proxy must accept uploads of at least 10 MB (for nginx, `client_max_body_size 10m;`).
 
+## Plan reminders
+
+Reminder emails need `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `APP_URL` in the service's environment file, readable only by the service account. The app checks for due reminders every two minutes and stamps each plan before sending, so a restart or a second process never sends the same reminder twice. Without SMTP settings, messages are written to `storage/outbox` (or `MAIL_OUTBOX_DIR`) instead. Many VPS providers block outgoing port 25; use port 587 or 465 with a mail provider.
+
+Databases created before plan reminders need `db/migrations/001-plan-reminders.sql`.
+
 ## Road tiles
 
 Routes save the OpenStreetMap roads they download in `ROAD_CACHE_DIR` (default `./storage/roads`), one file per map tile, refreshed after 30 days. The service account needs write access there. It is a cache: it does not need backups and can be deleted at any time.

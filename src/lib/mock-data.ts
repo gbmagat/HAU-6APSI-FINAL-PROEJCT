@@ -77,7 +77,7 @@ export const places: Place[] = [
     combinedScore: null,
     reviewProgress: "not-started",
     visitCount: 0,
-    nextVisitDate: "2026-08-09",
+    plan: { date: "2026-08-09", reminder: "day-before" },
     initials: "BH",
     shortDescription:
       "An easy evening walk with bookstores, public art, and space to wander.",
@@ -98,7 +98,7 @@ export const places: Place[] = [
     combinedScore: null,
     reviewProgress: "not-started",
     visitCount: 0,
-    nextVisitDate: "2026-08-16",
+    plan: { date: "2026-08-16", reminder: "day-before" },
     initials: "AT",
     shortDescription:
       "A shaded pause in the city for a slow Sunday walk and an early dinner.",
@@ -138,7 +138,7 @@ export const places: Place[] = [
     combinedScore: null,
     reviewProgress: "not-started",
     visitCount: 0,
-    nextVisitDate: "2026-08-23",
+    plan: { date: "2026-08-23", reminder: "day-before" },
     initials: "PA",
     shortDescription:
       "Open-air galleries and garden paths saved for an unhurried day together.",

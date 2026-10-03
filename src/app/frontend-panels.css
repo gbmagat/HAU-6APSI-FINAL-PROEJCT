@@ -1221,3 +1221,67 @@
     gap: 10px;
   }
 }
+
+/* Planned visit with an email reminder, in the place sidebar. */
+.plan-form {
+  display: grid;
+  gap: 12px;
+}
+
+.plan-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.plan-form__actions,
+.plan-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.plan-summary {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--color-sage);
+  border-radius: var(--radius-md);
+}
+
+.plan-summary p {
+  margin: 0;
+}
+
+.plan-summary__when {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-navy);
+  font-weight: 700;
+}
+
+.plan-summary__when small {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.plan-summary__reminder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.plan-summary__note {
+  font-size: 13px;
+}
+
+.place-card__plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-forest);
+  font-weight: 600;
+}
