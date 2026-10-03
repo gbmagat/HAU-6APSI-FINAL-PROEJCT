@@ -37,7 +37,8 @@ import { POST as signIn } from "@/app/api/auth/login/route";
 import { POST as submitReview } from "@/app/api/visits/[id]/review/route";
 import { POST as publishVisit } from "@/app/api/visits/route";
 import { hashPassword } from "@/lib/password";
-import { sendDueReminders } from "@/lib/plan-reminders";
+import { sendPlanReminders } from "@/lib/plan-reminders";
+import { sendReviewReminders } from "@/lib/review-reminders";
 import { reminderTime } from "@/lib/plans";
 import { loadServerState } from "@/lib/state-server";
 import { todayInManila } from "@/lib/visit-form";
@@ -592,16 +593,16 @@ describe("plan reminders by email", () => {
   it("emails both members once, only when the reminder is due", async () => {
     as(owner);
     await savePlan({});
-    expect(await sendDueReminders(new Date(dueAt().getTime() - 120_000))).toMatchObject({ plans: 0, sent: 0 });
+    expect(await sendPlanReminders(new Date(dueAt().getTime() - 120_000))).toMatchObject({ plans: 0, sent: 0 });
     expect(h.sendMail).not.toHaveBeenCalled();
 
-    expect(await sendDueReminders(dueAt())).toEqual({ plans: 1, sent: 2, failed: 0 });
+    expect(await sendPlanReminders(dueAt())).toEqual({ plans: 1, sent: 2, failed: 0 });
     expect(h.sendMail.mock.calls.map(([mail]) => mail.to).sort()).toEqual(["owner@example.test", "partner@example.test"]);
     const [mail] = h.sendMail.mock.calls[0];
     expect(mail.subject).toBe("Reminder: Luna Café tomorrow at 3:00 PM");
     expect(mail.text).toContain("Note: Window table");
 
-    expect(await sendDueReminders(new Date(dueAt().getTime() + 600_000))).toMatchObject({ plans: 0, sent: 0 });
+    expect(await sendPlanReminders(new Date(dueAt().getTime() + 600_000))).toMatchObject({ plans: 0, sent: 0 });
     expect(h.sendMail).toHaveBeenCalledTimes(2);
     expect((await loadServerState(space, owner)).places[0].plan?.reminderSent).toBe(true);
   });
@@ -613,23 +614,23 @@ describe("plan reminders by email", () => {
     as(owner);
     await savePlan({});
     h.sendMail.mockRejectedValueOnce(new Error("SMTP is down"));
-    expect(await sendDueReminders(dueAt())).toEqual({ plans: 1, sent: 0, failed: 1 });
-    expect(await sendDueReminders(new Date(dueAt().getTime() + 120_000))).toEqual({ plans: 1, sent: 1, failed: 0 });
+    expect(await sendPlanReminders(dueAt())).toEqual({ plans: 1, sent: 0, failed: 1 });
+    expect(await sendPlanReminders(new Date(dueAt().getTime() + 120_000))).toEqual({ plans: 1, sent: 1, failed: 0 });
     expect(h.sendMail.mock.calls.map(([sent]) => sent.to)).toEqual(["owner@example.test", "owner@example.test"]);
   });
 
   it("does not resend after saving the same plan again, but does after moving the date", async () => {
     as(owner);
     await savePlan({});
-    await sendDueReminders(dueAt());
+    await sendPlanReminders(dueAt());
     await savePlan({ note: "Window table, 2 people" });
     expect((await loadServerState(space, owner)).places[0].plan?.reminderSent).toBe(true);
-    expect(await sendDueReminders(new Date(dueAt().getTime() + 120_000))).toMatchObject({ plans: 0 });
+    expect(await sendPlanReminders(new Date(dueAt().getTime() + 120_000))).toMatchObject({ plans: 0 });
 
     const moved = daysAhead(12);
     await savePlan({ date: moved });
     expect((await loadServerState(space, owner)).places[0].plan).toMatchObject({ date: moved, reminderSent: false });
-    expect(await sendDueReminders(dueAt(moved))).toMatchObject({ plans: 1, sent: 2 });
+    expect(await sendPlanReminders(dueAt(moved))).toMatchObject({ plans: 1, sent: 2 });
   });
 
   it("drops the plan and its reminder once the visit is logged, and never reminds without one", async () => {
@@ -638,7 +639,47 @@ describe("plan reminders by email", () => {
     await publishAsOwner();
     expect((await loadServerState(space, owner)).places[0]).toMatchObject({ status: "visited", plan: undefined });
     await savePlan({ reminder: "none" });
-    expect(await sendDueReminders(dueAt())).toMatchObject({ plans: 0, sent: 0 });
+    expect(await sendPlanReminders(dueAt())).toMatchObject({ plans: 0, sent: 0 });
     expect(h.sendMail).not.toHaveBeenCalled();
+  });
+});
+
+describe("review reminders by email", () => {
+  const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000);
+
+  beforeEach(() => { h.sendMail.mockReset(); h.sendMail.mockResolvedValue(undefined); });
+
+  it("emails the partner once, after a short wait, without revealing the hidden review", async () => {
+    await publishAsOwner();
+    expect(await sendReviewReminders(minutesFromNow(5))).toMatchObject({ visits: 0, sent: 0 });
+
+    expect(await sendReviewReminders(minutesFromNow(16))).toEqual({ visits: 1, sent: 1, failed: 0 });
+    const [mail] = h.sendMail.mock.calls[0];
+    expect(mail.to).toBe("partner@example.test");
+    expect(mail.subject).toBe("owner logged Luna Café: your review is waiting");
+    expect(mail.text).toContain("on Sun, Sep 20");
+    for (const hidden of ["Warm and worth returning.", "rating", "score:"]) expect(mail.text.toLowerCase()).not.toContain(hidden.toLowerCase());
+
+    expect(await sendReviewReminders(minutesFromNow(30))).toMatchObject({ visits: 0 });
+    expect(h.sendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends nothing when the partner already reviewed or turned review reminders off", async () => {
+    const { id } = await publishAsOwner();
+    as(partner);
+    await submitReview(request(`/api/visits/${id}/review`, { rating: 5, reflection: "Lovely and quiet.", revisit: "yes" }), { params: Promise.resolve({ id }) });
+    expect(await sendReviewReminders(minutesFromNow(16))).toMatchObject({ visits: 0, sent: 0 });
+
+    await h.db.query("delete from reviews where author_id = $1", [partner]);
+    expect((await runAction(request("/api/actions", { action: "updateSettings", settings: { reviewReminders: false } }))).status).toBe(200);
+    expect(await sendReviewReminders(minutesFromNow(16))).toMatchObject({ visits: 1, sent: 0 });
+    expect(h.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("tries again on the next run when the email could not be sent", async () => {
+    await publishAsOwner();
+    h.sendMail.mockRejectedValueOnce(new Error("SMTP is down"));
+    expect(await sendReviewReminders(minutesFromNow(16))).toEqual({ visits: 1, sent: 0, failed: 1 });
+    expect(await sendReviewReminders(minutesFromNow(18))).toEqual({ visits: 1, sent: 1, failed: 0 });
   });
 });

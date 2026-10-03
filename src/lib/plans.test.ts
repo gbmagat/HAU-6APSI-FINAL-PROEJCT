@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { byUpcomingPlan, formatPlanDate, planInputSchema, reminderEmail, reminderTime } from "@/lib/plans";
+import { planReminderEmail, reviewReminderEmail } from "@/lib/emails";
+import { byUpcomingPlan, formatPlanDate, planInputSchema, reminderTime } from "@/lib/plans";
 import { todayInManila } from "@/lib/visit-form";
 
 function daysFrom(isoDate: string, days: number) {
@@ -63,7 +64,7 @@ describe("plan display", () => {
   });
 });
 
-describe("reminder email", () => {
+describe("plan reminder email", () => {
   const input = {
     memberName: "Gab",
     place: { name: "Luna <Café>", address: "12 Rizal St", city: "Makati", slug: "luna-cafe" },
@@ -73,7 +74,7 @@ describe("reminder email", () => {
   };
 
   it("says when and where, with a link back to the place", () => {
-    const email = reminderEmail(input);
+    const email = planReminderEmail(input);
     expect(email.subject).toBe("Reminder: Luna <Café> tomorrow at 3:00 PM");
     expect(email.text).toContain("Hi Gab,");
     expect(email.text).toContain("Where: 12 Rizal St, Makati");
@@ -82,16 +83,28 @@ describe("reminder email", () => {
   });
 
   it("escapes names and notes in the HTML version", () => {
-    const { html } = reminderEmail(input);
+    const { html } = planReminderEmail(input);
     expect(html).toContain("Luna &lt;Café&gt;");
     expect(html).toContain("&quot;window&quot;");
     expect(html).not.toContain("<Café>");
   });
 
   it("uses today or the date when the plan is not tomorrow, and leaves the link out without an app address", () => {
-    expect(reminderEmail({ ...input, today: "2026-10-11" }).subject).toBe("Reminder: Luna <Café> today at 3:00 PM");
-    const weekAhead = reminderEmail({ ...input, today: "2026-10-04", appUrl: undefined, plan: { date: "2026-10-11" } });
+    expect(planReminderEmail({ ...input, today: "2026-10-11" }).subject).toBe("Reminder: Luna <Café> today at 3:00 PM");
+    const weekAhead = planReminderEmail({ ...input, today: "2026-10-04", appUrl: undefined, plan: { date: "2026-10-11" } });
     expect(weekAhead.subject).toBe("Reminder: Luna <Café> on Sun, Oct 11");
     expect(weekAhead.text).not.toContain("Open the place");
+  });
+});
+
+describe("review reminder email", () => {
+  it("names the visit and links to it, escaping names in the HTML version", () => {
+    const email = reviewReminderEmail({
+      memberName: "M", authorName: "Gab <3", place: { name: "Luna & Co", slug: "luna-co" }, visitedOn: "2026-09-20", appUrl: "https://ourplaces.example",
+    });
+    expect(email.subject).toBe("Gab <3 logged Luna & Co: your review is waiting");
+    expect(email.text).toContain("Add your review: https://ourplaces.example/places/luna-co");
+    expect(email.html).toContain("Gab &lt;3");
+    expect(email.html).toContain("Luna &amp; Co");
   });
 });

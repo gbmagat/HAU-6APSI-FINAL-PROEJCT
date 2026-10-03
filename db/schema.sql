@@ -97,6 +97,8 @@ create table visits (
   story text not null check (char_length(btrim(story)) between 20 and 1200),
   idempotency_key uuid not null,
   created_at timestamptz not null default now(),
+  -- When the other member was emailed that their review is waiting (or null if not yet).
+  review_reminder_sent_at timestamptz,
   unique (space_id, id),
   unique (author_id, idempotency_key),
   foreign key (space_id, place_id) references places(space_id, id),
@@ -104,6 +106,7 @@ create table visits (
 );
 create index visits_space_created_idx on visits (space_id, created_at desc);
 create index visits_place_idx on visits (space_id, place_id, created_at desc);
+create index visits_review_reminder_idx on visits (created_at) where review_reminder_sent_at is null;
 
 -- One final, independent review per member per visit. The server must not return
 -- the partner's review until both members have submitted their own reviews.

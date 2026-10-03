@@ -283,7 +283,7 @@ export function ProfileSettings() {
             <Bell aria-hidden="true" />
             <div>
               <h3>Review reminders</h3>
-              <p>Notifications aren&apos;t sent yet; this saves your choice.</p>
+              <p>Email me when my partner logs a visit I haven&apos;t reviewed.</p>
             </div>
             <button
               type="button"
