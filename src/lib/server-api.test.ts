@@ -347,7 +347,7 @@ describe("private photos", () => {
     expect(await readdir(photoDir)).toHaveLength(1);
 
     const state = await loadServerState(space, partner);
-    expect(state.posts[0]).toMatchObject({ photoUrl: `/api/photos/${photoId}`, photoAlt: "A rainy café window" });
+    expect(state.posts[0].photos).toEqual([{ url: `/api/photos/${photoId}`, alt: "A rainy café window" }]);
 
     as(partner);
     const served = await fetchPhoto(photoId);
@@ -361,23 +361,60 @@ describe("private photos", () => {
     expect((await fetchPhoto(photoId)).status).toBe(401);
   });
 
-  it("refuses files that are not really images, other people's posts, a second photo, and other sites", async () => {
+  it("keeps several photos in the order they were added, each with its own description", async () => {
+    const { id } = await publishAsOwner();
+    const ids: string[] = [];
+    for (const [position, alt] of ["The doorway", "Our table", "The view after dinner"].entries()) {
+      const response = await upload(id, jpeg, ORIGIN, { alt, position: String(position) });
+      expect(response.status).toBe(201);
+      ids.push((await response.json() as { id: string }).id);
+    }
+    expect(await readdir(photoDir)).toHaveLength(3);
+    const state = await loadServerState(space, partner);
+    expect(state.posts[0].photos).toEqual([
+      { url: `/api/photos/${ids[0]}`, alt: "The doorway" },
+      { url: `/api/photos/${ids[1]}`, alt: "Our table" },
+      { url: `/api/photos/${ids[2]}`, alt: "The view after dinner" },
+    ]);
+  });
+
+  it("answers a retried upload with the photo already saved, never a copy", async () => {
+    const { id } = await publishAsOwner();
+    const first = await upload(id, jpeg, ORIGIN, { position: "0" });
+    const { id: photoId } = await first.json() as { id: string };
+    const retry = await upload(id, jpeg, ORIGIN, { position: "0" });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toEqual({ id: photoId });
+    expect(await readdir(photoDir)).toHaveLength(1);
+    // A photo cannot skip ahead of one that has not arrived yet.
+    expect((await upload(id, jpeg, ORIGIN, { position: "2" })).status).toBe(409);
+    expect(await readdir(photoDir)).toHaveLength(1);
+  });
+
+  it("stops at six photos per experience", async () => {
+    const { id } = await publishAsOwner();
+    for (let position = 0; position < 6; position += 1) {
+      expect((await upload(id, jpeg, ORIGIN, { position: String(position) })).status).toBe(201);
+    }
+    expect((await upload(id, jpeg, ORIGIN, { position: "6" })).status).toBe(400);
+    expect(await readdir(photoDir)).toHaveLength(6);
+  });
+
+  it("refuses files that are not really images, other people's posts, and other sites", async () => {
     const { id } = await publishAsOwner();
     expect((await upload(id, new TextEncoder().encode("<script>not an image</script>"))).status).toBe(400);
     expect((await upload(id, jpeg, ORIGIN, { width: "0" }))).toHaveProperty("status", 400);
     expect((await upload(id, jpeg, "https://evil.example")).status).toBe(403);
     as(partner);
     expect((await upload(id)).status).toBe(404);
-    as(owner);
-    expect((await upload(id)).status).toBe(201);
-    expect((await upload(id)).status).toBe(409);
-    expect(await readdir(photoDir)).toHaveLength(1);
+    expect(await readdir(photoDir)).toHaveLength(0);
   });
 
-  it("deletes the photo file together with the post", async () => {
+  it("deletes every photo file together with the post", async () => {
     const { id } = await publishAsOwner();
-    await upload(id);
-    expect(await readdir(photoDir)).toHaveLength(1);
+    await upload(id, jpeg, ORIGIN, { position: "0" });
+    await upload(id, jpeg, ORIGIN, { position: "1" });
+    expect(await readdir(photoDir)).toHaveLength(2);
     expect((await runAction(request("/api/actions", { action: "deletePost", postId: id }))).status).toBe(200);
     expect(await readdir(photoDir)).toHaveLength(0);
   });

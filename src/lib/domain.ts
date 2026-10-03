@@ -70,6 +70,11 @@ export type ReactionSummary = {
   selected: boolean;
 };
 
+export type PostPhoto = {
+  url: string;
+  alt?: string;
+};
+
 export type VisitPost = {
   id: string;
   place: Place;
@@ -78,8 +83,7 @@ export type VisitPost = {
   exhibition: string;
   title: string;
   story: string;
-  photoAlt?: string;
-  photoUrl?: string;
+  photos?: PostPhoto[];
   reviews: Review[];
   comments: number;
   reactions: ReactionSummary[];

@@ -4,7 +4,7 @@ export type FeedFilter = "all" | "photos" | "pending";
 
 export function filterPosts(posts: VisitPost[], filter: FeedFilter): VisitPost[] {
   if (filter === "pending") return posts.filter((post) => post.reviews.length < 2);
-  if (filter === "photos") return posts.filter((post) => Boolean(post.photoUrl));
+  if (filter === "photos") return posts.filter((post) => Boolean(post.photos?.length));
   return posts;
 }
 

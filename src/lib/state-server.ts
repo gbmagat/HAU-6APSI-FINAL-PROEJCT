@@ -6,6 +6,7 @@ import type {
   Member,
   Place,
   PlaceCategory,
+  PostPhoto,
   ReactionSummary,
   ReactionType,
   Review,
@@ -225,9 +226,10 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
     reactionsByVisit.set(row.visit_id, [...(reactionsByVisit.get(row.visit_id) ?? []), row]);
   }
 
-  const firstPhotoByVisit = new Map<string, PhotoRow>();
+  const photosByVisit = new Map<string, PostPhoto[]>();
   for (const row of photoResult.rows) {
-    if (!firstPhotoByVisit.has(row.visit_id)) firstPhotoByVisit.set(row.visit_id, row);
+    const photo: PostPhoto = { url: `/api/photos/${row.id}`, alt: row.alt_text || undefined };
+    photosByVisit.set(row.visit_id, [...(photosByVisit.get(row.visit_id) ?? []), photo]);
   }
 
   const posts: VisitPost[] = visitResult.rows.map((row) => {
@@ -241,7 +243,6 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
       count: postReactions.filter((reaction) => reaction.type === type).length,
       selected: postReactions.some((reaction) => reaction.type === type && reaction.author_id === userId),
     }));
-    const photo = firstPhotoByVisit.get(row.id);
     const discussion = commentsByVisit.get(row.id) ?? [];
     return {
       id: row.id,
@@ -251,8 +252,7 @@ export async function loadServerState(spaceId: string, userId: string): Promise<
       exhibition: row.exhibition,
       title: row.title,
       story: row.story,
-      photoAlt: photo?.alt_text || undefined,
-      photoUrl: photo ? `/api/photos/${photo.id}` : undefined,
+      photos: photosByVisit.get(row.id) ?? [],
       reviews: reviewsByVisit.get(row.id) ?? [],
       comments: discussion.length,
       reactions,

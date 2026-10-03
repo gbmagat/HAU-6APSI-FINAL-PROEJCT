@@ -39,11 +39,10 @@ type NewVisitInput = {
   rating: number;
   reflection: string;
   revisit: "yes" | "maybe" | "no";
-  photoAlt?: string;
-  photoUrl?: string;
-  photoWidth?: number;
-  photoHeight?: number;
+  photos?: NewVisitPhoto[];
 };
+
+export type NewVisitPhoto = { url: string; alt: string; width: number; height: number };
 
 type ReviewInput = {
   rating: number;
@@ -159,8 +158,15 @@ function syncNested(state: PreviewState): PreviewState {
 }
 
 /** Preview scores and review progress are derived from posts for the current viewer, never hand-patched. */
+// Older previews kept a single photo as photoUrl and photoAlt.
+function withPhotoList(post: VisitPost & { photoUrl?: string; photoAlt?: string }): VisitPost {
+  const { photoUrl, photoAlt, ...rest } = post;
+  return { ...rest, photos: rest.photos ?? (photoUrl ? [{ url: photoUrl, alt: photoAlt }] : []) };
+}
+
 function normalizePreview(state: PreviewState): PreviewState {
-  return syncNested({ ...state, places: withDerivedReviewState(state.places, state.posts, state.currentMemberId) });
+  const posts = state.posts.map(withPhotoList);
+  return syncNested({ ...state, posts, places: withDerivedReviewState(state.places, posts, state.currentMemberId) });
 }
 
 function getReactions(post: VisitPost, currentMemberId: string) {
@@ -396,21 +402,24 @@ export function PassportProvider({ children, serverMode }: { children: ReactNode
     addVisit(input, memberId = stateRef.current.currentMemberId) {
       if (serverMode) {
         return (async () => {
-          const { photoUrl, photoAlt, photoWidth, photoHeight, ...visit } = input;
-          const result = await sendServerRequest("/api/visits", { ...visit, photoAlt: "", privateToMembers: true });
+          const { photos = [], ...visit } = input;
+          const result = await sendServerRequest("/api/visits", { ...visit, privateToMembers: true });
           if (!result.id) throw new Error("The save could not be confirmed. Please retry with this draft.");
-          if (photoUrl) {
-            // The experience is saved first; the photo follows. Retrying Publish reuses the saved experience.
+          // The experience is saved first; the photos follow in order. Retrying Publish reuses the saved
+          // experience, and photos that already arrived are recognised by their position and skipped.
+          for (const [position, photo] of photos.entries()) {
             const form = new FormData();
-            form.set("photo", await (await fetch(photoUrl)).blob(), "photo.jpg");
-            form.set("alt", photoAlt?.trim() ?? "");
-            form.set("width", String(photoWidth ?? 0));
-            form.set("height", String(photoHeight ?? 0));
+            form.set("photo", await (await fetch(photo.url)).blob(), `photo-${position + 1}.jpg`);
+            form.set("alt", photo.alt.trim());
+            form.set("width", String(photo.width));
+            form.set("height", String(photo.height));
+            form.set("position", String(position));
             const upload = await fetch(`/api/visits/${encodeURIComponent(result.id)}/photos`, { method: "POST", body: form, credentials: "same-origin" });
-            if (!upload.ok && upload.status !== 409) {
+            if (!upload.ok) {
               await refreshServerState();
               const data = await upload.json().catch(() => null) as { error?: string } | null;
-              throw new Error(`Your experience is saved, but the photo did not upload${data?.error ? `: ${data.error}` : "."} Press Publish again to retry the photo.`);
+              const which = photos.length > 1 ? `photo ${position + 1} of ${photos.length}` : "the photo";
+              throw new Error(`Your experience is saved, but ${which} did not upload${data?.error ? `: ${data.error}` : "."} Press Publish again to retry.`);
             }
           }
           await refreshServerState();
@@ -438,8 +447,7 @@ export function PassportProvider({ children, serverMode }: { children: ReactNode
         exhibition: input.exhibition.trim() || "Shared place",
         title: input.title.trim() || place.name,
         story: input.story.trim(),
-        photoAlt: input.photoAlt?.trim() || undefined,
-        photoUrl: input.photoUrl,
+        photos: (input.photos ?? []).map((photo) => ({ url: photo.url, alt: photo.alt.trim() || undefined })),
         reviews: [review],
         comments: 0,
         reactions: [{ type: "love", count: 0, selected: false }],
