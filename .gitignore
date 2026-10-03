@@ -35,6 +35,9 @@ Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 
+# private coursework (kept in the private course workspace, never in this public repository)
+/project
+
 # local scratch and tool files
 /tmp
 /recovered-temp

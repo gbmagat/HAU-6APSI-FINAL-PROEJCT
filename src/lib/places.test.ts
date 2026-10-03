@@ -18,8 +18,8 @@ import {
 const place = (slug: string, status: VisitStatus, extra: Partial<Place> = {}) =>
   ({ id: slug, slug, status, visitCount: 0, combinedScore: null, reviewProgress: "not-started", ...extra }) as Place;
 
-const gab = { id: "gab" } as Member;
-const partner = { id: "m" } as Member;
+const alex = { id: "alex" } as Member;
+const partner = { id: "sam" } as Member;
 const review = (author: Member, overall: number) => ({ author, ratings: { overall } }) as Review;
 const post = (placeId: string, createdAt: string, reviews: Review[], visitedOn = createdAt.slice(0, 10)) =>
   ({ place: { id: placeId }, createdAt, visitedOn, reviews }) as VisitPost;
@@ -76,23 +76,23 @@ describe("withDerivedReviewState", () => {
   const places = [place("cafe", "visited"), place("park", "planned")];
 
   it("derives score and progress from the latest visit for the current viewer", () => {
-    const posts = [post("cafe", "2026-07-01T10:00:00Z", [review(gab, 4), review(partner, 5)]), post("cafe", "2026-08-01T10:00:00Z", [review(gab, 3)])];
-    const forGab = withDerivedReviewState(places, posts, gab.id);
+    const posts = [post("cafe", "2026-07-01T10:00:00Z", [review(alex, 4), review(partner, 5)]), post("cafe", "2026-08-01T10:00:00Z", [review(alex, 3)])];
+    const forAlex = withDerivedReviewState(places, posts, alex.id);
     const forPartner = withDerivedReviewState(places, posts, partner.id);
 
-    expect(forGab[0]).toMatchObject({ combinedScore: null, reviewProgress: "partner-review-needed" });
+    expect(forAlex[0]).toMatchObject({ combinedScore: null, reviewProgress: "partner-review-needed" });
     expect(forPartner[0]).toMatchObject({ combinedScore: null, reviewProgress: "your-review-needed" });
-    expect(forGab[1]).toMatchObject({ combinedScore: null, reviewProgress: "not-started" });
+    expect(forAlex[1]).toMatchObject({ combinedScore: null, reviewProgress: "not-started" });
   });
 
   it("reveals the combined score once both reviews on the latest visit exist", () => {
-    const posts = [post("cafe", "2026-08-01T10:00:00Z", [review(gab, 4), review(partner, 5)])];
-    expect(withDerivedReviewState(places, posts, gab.id)[0]).toMatchObject({ combinedScore: 4.5, reviewProgress: "ready" });
+    const posts = [post("cafe", "2026-08-01T10:00:00Z", [review(alex, 4), review(partner, 5)])];
+    expect(withDerivedReviewState(places, posts, alex.id)[0]).toMatchObject({ combinedScore: 4.5, reviewProgress: "ready" });
   });
 
   it("clears the score when the last visit is deleted", () => {
     const stale = place("cafe", "visited", { combinedScore: 5, reviewProgress: "ready" });
-    expect(withDerivedReviewState([stale], [], gab.id)[0]).toMatchObject({ combinedScore: null, reviewProgress: "not-started" });
+    expect(withDerivedReviewState([stale], [], alex.id)[0]).toMatchObject({ combinedScore: null, reviewProgress: "not-started" });
   });
 });
 

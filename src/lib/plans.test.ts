@@ -66,7 +66,7 @@ describe("plan display", () => {
 
 describe("plan reminder email", () => {
   const input = {
-    memberName: "Gab",
+    memberName: "Alex",
     place: { name: "Luna <Café>", address: "12 Rizal St", city: "Makati", slug: "luna-cafe" },
     plan: { date: "2026-10-11", time: "15:00", note: "Ask for the \"window\" table" },
     appUrl: "https://ourplaces.example/",
@@ -76,7 +76,7 @@ describe("plan reminder email", () => {
   it("says when and where, with a link back to the place", () => {
     const email = planReminderEmail(input);
     expect(email.subject).toBe("Reminder: Luna <Café> tomorrow at 3:00 PM");
-    expect(email.text).toContain("Hi Gab,");
+    expect(email.text).toContain("Hi Alex,");
     expect(email.text).toContain("Where: 12 Rizal St, Makati");
     expect(email.text).toContain("Open the place: https://ourplaces.example/places/luna-cafe");
     expect(email.text).toContain("turn them off in Profile");
@@ -100,11 +100,11 @@ describe("plan reminder email", () => {
 describe("review reminder email", () => {
   it("names the visit and links to it, escaping names in the HTML version", () => {
     const email = reviewReminderEmail({
-      memberName: "M", authorName: "Gab <3", place: { name: "Luna & Co", slug: "luna-co" }, visitedOn: "2026-09-20", appUrl: "https://ourplaces.example",
+      memberName: "Sam", authorName: "Alex <3", place: { name: "Luna & Co", slug: "luna-co" }, visitedOn: "2026-09-20", appUrl: "https://ourplaces.example",
     });
-    expect(email.subject).toBe("Gab <3 logged Luna & Co: your review is waiting");
+    expect(email.subject).toBe("Alex <3 logged Luna & Co: your review is waiting");
     expect(email.text).toContain("Add your review: https://ourplaces.example/places/luna-co");
-    expect(email.html).toContain("Gab &lt;3");
+    expect(email.html).toContain("Alex &lt;3");
     expect(email.html).toContain("Luna &amp; Co");
   });
 });

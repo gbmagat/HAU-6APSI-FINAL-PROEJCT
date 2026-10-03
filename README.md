@@ -48,8 +48,6 @@ Copy `.env.example` to `.env.local`.
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | Server-only PostgreSQL connection string. Leave empty to use the frontend preview. Never commit a real value. |
-| `NEXT_PUBLIC_PLACE_PROVIDER` | Placeholder for the planned map provider (`openstreetmap`). Not used yet. |
-| `NEXT_PUBLIC_PLACE_API_KEY` | Placeholder for that provider. Not used yet. |
 | `PHOTO_DIR` | Server-only folder for uploaded photos, outside `public/`. Defaults to `./storage/photos`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Mail server for plan and review reminders, for example Gmail (`smtp.gmail.com`, port 587, with an app password). Port 465 uses TLS from the start; set `SMTP_SECURE` to override. Without `SMTP_HOST`, emails are saved as `.eml` files in `./storage/outbox` instead of being sent. |
 | `MAIL_FROM` | Sender shown on reminder emails. Defaults to `Our Places <SMTP_USER>`. |
@@ -129,7 +127,6 @@ db/               PostgreSQL schema and server setup notes
 scripts/          Account provisioning and dev tooling
 public/           SVG images and icons
 docs/             README screenshots
-project/          Coursework submissions
 supabase/         Earlier Supabase design, not used
 ```
 
@@ -144,6 +141,14 @@ supabase/         Earlier Supabase design, not used
 | ![Luna Café with both reviews revealed](docs/screenshots/place.png) | ![Map with status filters and a selected place](docs/screenshots/map.png) |
 
 <img src="docs/screenshots/feed-mobile.png" alt="The feed on a phone" width="320">
+
+## Credits
+
+- Map data and tiles © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) (ODbL); place search through Nominatim and road data through the Overpass API.
+- Place summaries from [Wikipedia](https://www.wikipedia.org/) (CC BY-SA), linked back to each article.
+- [Poppins](https://fonts.google.com/specimen/Poppins) by Indian Type Foundry, SIL Open Font License 1.1 (the licence is embedded in each font file).
+- Icons from [Lucide](https://lucide.dev/) (ISC); maps drawn with [Leaflet](https://leafletjs.com/) (BSD 2-Clause).
+- The interface design, the SVG assets in `public/assets`, and the screenshots are this project's own work. Sample places are real public venues; every person in the sample data is invented.
 
 ## Known issues and next steps
 

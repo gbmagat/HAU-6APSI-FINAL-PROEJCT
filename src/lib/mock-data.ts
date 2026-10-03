@@ -8,15 +8,15 @@ import type {
 
 export const members: Member[] = [
   {
-    id: "member-gab",
-    displayName: "Gab",
-    initials: "G",
+    id: "member-alex",
+    displayName: "Alex",
+    initials: "A",
     role: "owner",
   },
   {
-    id: "member-m",
-    displayName: "M",
-    initials: "M",
+    id: "member-sam",
+    displayName: "Sam",
+    initials: "S",
     role: "partner",
   },
 ];
@@ -202,8 +202,8 @@ export const places: Place[] = [
   },
 ];
 
-const gabNationalReview: Review = {
-  id: "review-national-gab",
+const alexNationalReview: Review = {
+  id: "review-national-alex",
   author: members[0],
   ratings: {
     collection: 4,
@@ -219,8 +219,8 @@ const gabNationalReview: Review = {
   submittedAt: "2026-07-28T10:30:00.000Z",
 };
 
-const gabLunaReview: Review = {
-  id: "review-luna-gab",
+const alexLunaReview: Review = {
+  id: "review-luna-alex",
   author: members[0],
   ratings: {
     collection: 5,
@@ -236,8 +236,8 @@ const gabLunaReview: Review = {
   submittedAt: "2026-07-24T18:15:00.000Z",
 };
 
-const mLunaReview: Review = {
-  id: "review-luna-m",
+const samLunaReview: Review = {
+  id: "review-luna-sam",
   author: members[1],
   ratings: {
     collection: 5,
@@ -263,7 +263,7 @@ export const visitPosts: VisitPost[] = [
     title: "The last gallery stayed with us",
     story:
       "We slowed down near the end and returned to the first rooms before leaving. The second walk through felt completely different.",
-    reviews: [gabNationalReview],
+    reviews: [alexNationalReview],
     comments: 1,
     reactions: [
       { type: "love", count: 2, selected: false },
@@ -280,7 +280,7 @@ export const visitPosts: VisitPost[] = [
     title: "Rain at Luna Café",
     story:
       "We stayed past dessert, trading stories while the rain softened outside.",
-    reviews: [gabLunaReview, mLunaReview],
+    reviews: [alexLunaReview, samLunaReview],
     comments: 2,
     reactions: [
       { type: "love", count: 3, selected: true },

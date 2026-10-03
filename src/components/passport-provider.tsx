@@ -91,7 +91,7 @@ function seededState(): PreviewState {
     places: clone(seedPlaces),
     posts: clone(seedPosts),
     members: clone(seedMembers),
-    currentMemberId: seedMembers[0]?.id ?? "member-gab",
+    currentMemberId: seedMembers[0]?.id ?? "member-alex",
     settings: { reviewReminders: true, locationEnabled: false, planReminders: true },
   };
 }
