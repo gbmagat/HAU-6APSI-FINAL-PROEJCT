@@ -24,6 +24,16 @@ It covers restaurants, cafés, museums, parks, and any other place worth remembe
 
 Next.js 16 (App Router), React, TypeScript · PostgreSQL through `pg` · Leaflet with OpenStreetMap tiles · Zod validation · custom email/password sign-in with scrypt hashes and database-backed sessions · Vitest with PGlite for tests.
 
+### Client, API, and database
+
+| Piece | Where it lives |
+|---|---|
+| **React client** | The pages and components in `src/app` and `src/components`, written in React 19 and rendered by Next.js. |
+| **API** | Node.js route handlers in `src/app/api`, one folder per endpoint (see [API routes](#api-routes)). They take and return JSON, check the session, and validate every request with Zod, the same job an Express router does. |
+| **Database** | PostgreSQL, reached only from the server through the `pg` connection pool in `src/lib/db.ts`, with every query parameterised. |
+
+**Why Next.js instead of a separate Express server.** The app is private to two people, so nothing in it may reach the browser before the server has checked who is asking. With Next.js, the pages and the API run in the same Node.js process on the same origin: the server checks the session before rendering a page, the sign-in cookie never has to cross between two sites, and there is no CORS to configure, which leaves one fewer thing to get wrong. It also means one service to deploy and keep running instead of two. The API is still a separate layer: the route handlers are thin, and the rules they call (blind reviews, distances, routes, reminders) live in plain TypeScript modules in `src/lib`, which have their own tests and would move to an Express server unchanged.
+
 ## Getting started
 
 ### Requirements
@@ -99,6 +109,8 @@ See [deploy/DEPLOY.md](deploy/DEPLOY.md) to deploy on an Ubuntu server alongside
 ## Usage
 
 Sign in, find a place on the map, and log an experience with your own review. Your partner sees the post in the feed and adds their review from the place page. Once both reviews exist, the shared score and both reflections appear together.
+
+### API routes
 
 | Route | Purpose |
 |---|---|
