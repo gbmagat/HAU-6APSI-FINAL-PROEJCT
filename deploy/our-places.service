@@ -13,8 +13,11 @@ Group=ourplaces
 WorkingDirectory=/opt/our-places/app
 EnvironmentFile=/etc/our-places/our-places.env
 Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+# Node may live in /usr/local/bin (a manual install) or /usr/bin (a package).
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 # Loopback only: nginx is the single way in. Pick a port no other app uses (check with `ss -ltn`).
-ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3100
+ExecStart=/usr/bin/env node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3100
 Restart=on-failure
 RestartSec=5
 
