@@ -4,12 +4,26 @@ This application now uses its own PostgreSQL database and Next.js route handlers
 
 ## Prepare the database
 
-1. Create a new PostgreSQL database and a dedicated login role for this app. Do not reuse an existing database or IGSTPREM credentials. Keep PostgreSQL private to the VPS.
-2. On that new, empty database, apply `db/schema.sql` once with `psql -h 127.0.0.1 -U our_places_app -d our_places -v ON_ERROR_STOP=1 -f db/schema.sql` (replace the example role/database names). Verify the target first; the schema is not a migration for an existing app.
-3. Set `DATABASE_URL` in a protected server-only environment file. Never use a `NEXT_PUBLIC_` variable for it or commit the real value.
-4. In an interactive terminal, run `node scripts/provision-space.mjs --database our_places --owner-email YOU@example.com --owner-name "Your name" --partner-email PARTNER@example.com --partner-name "Partner name"`. Replace the placeholders and use the actual dedicated database name. The script checks the target, asks for confirmation, and prompts for passwords without echo.
-
-5. Add places with SQL, since there is no "Add place" screen yet: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/sample-places.sql` loads seven sample places, and the file shows how to add your own.
+1. Keep PostgreSQL private to the VPS: leave `listen_addresses = 'localhost'` in `postgresql.conf`, allow only local connections in `pg_hba.conf`, and keep port 5432 closed in the firewall. Do not reuse an existing database or IGSTPREM credentials.
+2. Create two roles and the database as a PostgreSQL superuser (`sudo -u postgres psql`). The owner role applies the schema and migrations; the app role, which the running site uses, can only read and change rows. Set each password interactively with `\password`, so it never appears in shell history or in a file:
+   ```sql
+   create role our_places_owner login;
+   create role our_places_app login;
+   \password our_places_owner
+   \password our_places_app
+   create database our_places owner our_places_owner;
+   revoke all on database our_places from public;
+   grant connect on database our_places to our_places_app;
+   \c our_places
+   revoke create on schema public from public;
+   grant usage on schema public to our_places_app;
+   alter default privileges for role our_places_owner in schema public
+     grant select, insert, update, delete on tables to our_places_app;
+   ```
+3. Apply the schema once as the owner, on the new, empty database: `psql -h 127.0.0.1 -U our_places_owner -d our_places -v ON_ERROR_STOP=1 -f db/schema.sql`. Apply later files in `db/migrations` the same way. The default privileges above give the app role row access to every table the owner creates, and nothing else: it cannot create, alter, or drop tables.
+4. Set `DATABASE_URL` to the **app** role (`postgres://our_places_app:...@127.0.0.1:5432/our_places`) in a server-only environment file readable only by the service account. Never use a `NEXT_PUBLIC_` variable for it or commit the real value.
+5. In an interactive terminal, run `node scripts/provision-space.mjs --database our_places --owner-email YOU@example.com --owner-name "Your name" --partner-email PARTNER@example.com --partner-name "Partner name"`. Replace the placeholders and use the actual dedicated database name. The script checks the target, asks for confirmation, and prompts for passwords without echo.
+6. Optionally load the sample places with `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/sample-places.sql`. Real places are added from the map search.
 
 There is no public registration. The two accounts share one space. Private sessions are stored in PostgreSQL; the browser receives only a Secure, HttpOnly session cookie when running over HTTPS.
 
