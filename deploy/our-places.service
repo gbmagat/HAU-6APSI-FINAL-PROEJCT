@@ -1,0 +1,31 @@
+# systemd unit for Our Places. Install as /etc/systemd/system/our-places.service.
+# It runs as its own unprivileged account and can write only to its own data folders,
+# so it cannot touch other apps on the same server.
+[Unit]
+Description=Our Places (Next.js)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ourplaces
+Group=ourplaces
+WorkingDirectory=/opt/our-places/app
+EnvironmentFile=/etc/our-places/our-places.env
+Environment=NODE_ENV=production
+# Loopback only: nginx is the single way in. Pick a port no other app uses (check with `ss -ltn`).
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3100
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/our-places /opt/our-places/app/.next
+
+[Install]
+WantedBy=multi-user.target

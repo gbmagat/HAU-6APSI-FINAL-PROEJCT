@@ -84,7 +84,7 @@ The app runs in one of three modes:
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002-review-reminders.sql
    ```
 
-See [db/README.md](db/README.md) for server and hosting notes. The `supabase/` folder is an earlier design kept for history; do not apply it.
+See [deploy/DEPLOY.md](deploy/DEPLOY.md) to deploy on an Ubuntu server alongside other apps, and [db/README.md](db/README.md) for database setup. The `supabase/` folder is an earlier design kept for history; do not apply it.
 
 ## Commands
 
@@ -123,7 +123,8 @@ All write routes reject requests from other origins and require a session. Perso
 src/app/          Pages, layouts, and API route handlers
 src/components/   Screens, forms, and reusable UI
 src/lib/          Database access, sessions, passwords, validation, app rules, and tests
-db/               PostgreSQL schema and server setup notes
+db/               PostgreSQL schema, migrations, and database setup notes
+deploy/           systemd unit, nginx site, and server deployment steps
 scripts/          Account provisioning and dev tooling
 public/           SVG images and icons
 docs/             README screenshots
