@@ -145,6 +145,7 @@ supabase/         Earlier Supabase design, not used
 
 ## Credits
 
+- Built with AI assistance from [Claude Code](https://claude.com/claude-code) (Anthropic). [AI-USAGE.md](AI-USAGE.md) records what it did, where it was wrong, and which code I wrote myself.
 - Map data and tiles © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) (ODbL); place search through Nominatim and road data through the Overpass API.
 - Place summaries from [Wikipedia](https://www.wikipedia.org/) (CC BY-SA), linked back to each article.
 - [Poppins](https://fonts.google.com/specimen/Poppins) by Indian Type Foundry, SIL Open Font License 1.1 (the licence is embedded in each font file).
