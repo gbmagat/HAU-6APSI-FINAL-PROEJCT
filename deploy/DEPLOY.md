@@ -41,8 +41,10 @@ sudo -u ourplaces npm run build
 
 ## 4. Environment file (secrets live only here)
 
+Owned by root and readable by the service account's group, so the app can read it but not change it.
+
 ```bash
-sudo install -m 600 -o ourplaces -g ourplaces /dev/null /etc/our-places/our-places.env
+sudo install -m 640 -o root -g ourplaces /dev/null /etc/our-places/our-places.env
 sudo nano /etc/our-places/our-places.env
 ```
 
